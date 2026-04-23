@@ -7,6 +7,8 @@
 .qodo/
 __pycache__/
 *.py[cod]
+*.egg-info/
+*.tsbuildinfo
 .pytest_cache/
 .mypy_cache/
 backend/.coverage
@@ -14,6 +16,8 @@ backend/htmlcov/
 backend/.ruff_cache/
 frontend/node_modules/
 frontend/dist/
+frontend/vite.config.js
+frontend/vite.config.d.ts
 backend/uploads/
 backend/.pytest_cache/
 backend/.mypy_cache/
