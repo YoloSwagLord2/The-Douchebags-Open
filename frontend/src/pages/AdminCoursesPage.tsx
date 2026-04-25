@@ -43,16 +43,34 @@ export function AdminCoursesPage() {
         <p className="eyebrow">Course architect</p>
         <h2>Create course</h2>
         <form className="stack-form" onSubmit={submit}>
-          <input placeholder="Course name" value={name} onChange={(event) => setName(event.target.value)} />
-          <input type="number" placeholder="Slope rating" value={slope} onChange={(event) => setSlope(Number(event.target.value))} />
-          <input type="number" placeholder="Course rating" value={rating} onChange={(event) => setRating(Number(event.target.value))} />
+          <label className="field-label">
+            Course name
+            <input placeholder="e.g. Augusta National" value={name} onChange={(event) => setName(event.target.value)} />
+          </label>
+          <label className="field-label">
+            Slope rating (55–155)
+            <input type="number" min={55} max={155} value={slope} onChange={(event) => setSlope(Number(event.target.value))} />
+          </label>
+          <label className="field-label">
+            Course rating (50–85)
+            <input type="number" min={50} max={85} step={0.1} value={rating} onChange={(event) => setRating(Number(event.target.value))} />
+          </label>
           <div className="hole-grid">
             {holes.map((hole, index) => (
               <div className="hole-grid__cell" key={hole.hole_number}>
                 <strong>Hole {hole.hole_number}</strong>
-                <input type="number" placeholder="Par (3–7)" value={hole.par} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, par: Number(event.target.value) } : item))} />
-                <input type="number" placeholder="Stroke index" value={hole.stroke_index} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, stroke_index: Number(event.target.value) } : item))} />
-                <input type="number" placeholder="Distance (m)" value={hole.distance} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, distance: Number(event.target.value) } : item))} />
+                <label className="field-label">
+                  Par
+                  <input type="number" min={3} max={7} value={hole.par} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, par: Number(event.target.value) } : item))} />
+                </label>
+                <label className="field-label">
+                  Stroke index
+                  <input type="number" min={1} max={18} value={hole.stroke_index} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, stroke_index: Number(event.target.value) } : item))} />
+                </label>
+                <label className="field-label">
+                  Distance (m)
+                  <input type="number" min={1} value={hole.distance} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, distance: Number(event.target.value) } : item))} />
+                </label>
               </div>
             ))}
           </div>
