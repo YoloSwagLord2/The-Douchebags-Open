@@ -19,6 +19,7 @@ export function AdminPlayersPage() {
     hcp: 18,
     role: "player",
     is_active: true,
+    password: "",
   });
 
   const load = async () => {
@@ -38,6 +39,7 @@ export function AdminPlayersPage() {
       hcp: selectedPlayer.hcp,
       role: selectedPlayer.role,
       is_active: selectedPlayer.is_active,
+      password: "",
     });
   }, [selectedPlayer]);
 
@@ -65,7 +67,10 @@ export function AdminPlayersPage() {
     if (!token || !selectedPlayerId) return;
     setEditError(null);
     try {
-      await api.updateAdminPlayer(selectedPlayerId, editForm, token);
+      const payload: Record<string, unknown> = { ...editForm };
+      if (!editForm.password) delete payload.password;
+      await api.updateAdminPlayer(selectedPlayerId, payload, token);
+      setEditForm((f) => ({ ...f, password: "" }));
       await load();
     } catch (err) {
       setEditError(err instanceof Error ? err.message : "Failed to update player");
@@ -113,9 +118,10 @@ export function AdminPlayersPage() {
         </label>
         {selectedPlayer ? (
           <form className="stack-form" onSubmit={updateSelectedPlayer}>
-            <input value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} />
-            <input value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} />
-            <input type="number" value={editForm.hcp} onChange={(event) => setEditForm({ ...editForm, hcp: Number(event.target.value) })} />
+            <input placeholder="Name" value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} />
+            <input placeholder="Email" type="email" value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} />
+            <input placeholder="New password (leave blank to keep current)" type="password" value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} />
+            <input placeholder="Handicap" type="number" value={editForm.hcp} onChange={(event) => setEditForm({ ...editForm, hcp: Number(event.target.value) })} />
             <select value={editForm.role} onChange={(event) => setEditForm({ ...editForm, role: event.target.value })}>
               <option value="player">Player</option>
               <option value="admin">Admin</option>
