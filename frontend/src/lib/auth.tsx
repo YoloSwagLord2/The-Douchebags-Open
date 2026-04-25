@@ -28,15 +28,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      if (!saved) {
+        setReady(true);
+        return;
+      }
+      const parsed = JSON.parse(saved) as { token: string; user: UserSummary };
+      setToken(parsed.token);
+      setUser(parsed.user);
+    } catch (err) {
+      console.error("Failed to load auth from localStorage:", err);
+    } finally {
       setReady(true);
-      return;
     }
-    const parsed = JSON.parse(saved) as { token: string; user: UserSummary };
-    setToken(parsed.token);
-    setUser(parsed.user);
-    setReady(true);
   }, []);
 
   const login = (result: AuthResponse) => {
