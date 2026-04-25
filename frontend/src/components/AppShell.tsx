@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { usePopups } from "../lib/popups";
 import { useEffect, useState } from "react";
@@ -11,7 +11,6 @@ export function AppShell() {
   const { user, token, logout } = useAuth();
   const { queue, dismiss, unreadCount } = usePopups();
   const [navigation, setNavigation] = useState<NavigationTournament[]>([]);
-  const location = useLocation();
 
   useEffect(() => {
     if (!token) return;
@@ -24,28 +23,27 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
-      <header className="top-hero">
-        <div className="top-hero__copy">
-          <p className="eyebrow">The Douchebags Open</p>
-          <h1>{location.pathname.startsWith("/admin") ? "Tournament Control" : "Championship Board"}</h1>
-          <p className="hero-subtitle">
-            Dark, fast, phone-first tournament tracking with live scoring, side games, and a proper boardroom feel.
-          </p>
-        </div>
-        <div className="top-hero__actions">
-          <Link className="button-primary" to="/leaderboard">
-            Open board
-          </Link>
-          {latestRound ? (
-            <Link className="button-secondary" to={`/round/${latestRound.id}/entry`}>
-              Enter scores
+      {user?.role === "admin" && (
+        <header className="top-hero">
+          <div className="top-hero__copy">
+            <p className="eyebrow">The Douchebags Open</p>
+            <h1>Tournament Control</h1>
+          </div>
+          <div className="top-hero__actions">
+            <Link className="button-primary" to="/leaderboard">
+              Open board
             </Link>
-          ) : null}
-          <button className="button-ghost" onClick={logout} type="button">
-            Sign out
-          </button>
-        </div>
-      </header>
+            {latestRound ? (
+              <Link className="button-secondary" to={`/round/${latestRound.id}/entry`}>
+                Enter scores
+              </Link>
+            ) : null}
+            <button className="button-ghost" onClick={logout} type="button">
+              Sign out
+            </button>
+          </div>
+        </header>
+      )}
 
       <main className="page-shell">
         <Outlet context={{ navigation }} />
@@ -71,6 +69,9 @@ export function AppShell() {
               Inbox
               {unreadCount ? <span className="badge">{unreadCount}</span> : null}
             </NavLink>
+            <button onClick={logout} type="button">
+              Sign out
+            </button>
           </>
         )}
       </nav>

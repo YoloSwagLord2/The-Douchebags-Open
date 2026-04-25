@@ -139,7 +139,8 @@ button {
 .button-ghost,
 .segmented-control button,
 .bottom-nav a,
-.bottom-nav span {
+.bottom-nav span,
+.bottom-nav button {
   min-height: 44px;
   border-radius: 999px;
   border: 1px solid var(--border);

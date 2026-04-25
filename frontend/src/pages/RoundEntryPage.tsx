@@ -13,6 +13,7 @@ export function RoundEntryPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [draftStroke, setDraftStroke] = useState<number>(4);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token || !roundId) return;
@@ -35,6 +36,7 @@ export function RoundEntryPage() {
   const saveCurrentHole = async () => {
     if (!token || !roundId || !hole) return;
     setSaving(true);
+    setSaveError(null);
     try {
       const response = await api.saveScorecard(roundId, [{ hole_id: hole.hole_id, strokes: draftStroke }], token);
       setScorecard(response);
@@ -46,6 +48,8 @@ export function RoundEntryPage() {
       }
       await refreshNotifications();
       setCurrentIndex((index) => Math.min(index + 1, response.holes.length - 1));
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save score");
     } finally {
       setSaving(false);
     }
@@ -59,12 +63,10 @@ export function RoundEntryPage() {
     <div className="stack-layout">
       <section className="masthead-panel">
         <div>
-          <p className="eyebrow">Score entry</p>
-          <h2>
-            {scorecard?.round.tournament_name} • Round {scorecard?.round.round_number}
-          </h2>
+          <p className="eyebrow">{scorecard?.round.tournament_name} • Round {scorecard?.round.round_number}</p>
+          <h2>Enter your scores</h2>
           <p className="hero-subtitle">
-            One-hole flow for quick mobile entry, with all totals coming straight from the backend.
+            Tap + or − to set your strokes, then press Save and continue after each hole.
           </p>
         </div>
         <div className="score-chip">{progress}</div>
@@ -95,6 +97,7 @@ export function RoundEntryPage() {
               +
             </button>
           </div>
+          {saveError && <p className="form-error">{saveError}</p>}
           <div className="hole-stage__footer">
             <button type="button" className="button-ghost" onClick={() => setCurrentIndex((value) => Math.max(0, value - 1))}>
               Previous
