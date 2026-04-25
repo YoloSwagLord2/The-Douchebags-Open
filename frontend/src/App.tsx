@@ -17,6 +17,7 @@ import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { RoundEntryPage } from "./pages/RoundEntryPage";
+import { ScorePage } from "./pages/ScorePage";
 
 function RequireAuth({ children }: { children: ReactElement }) {
   const { ready, token } = useAuth();
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="leaderboard" element={<LeaderboardIndexPage />} />
         <Route path="leaderboard/tournament/:tournamentId" element={<LeaderboardPage scope="tournament" />} />
         <Route path="leaderboard/round/:roundId" element={<LeaderboardPage scope="round" />} />
+        <Route path="score" element={<ScorePage />} />
         <Route path="round/:roundId/entry" element={<RoundEntryPage />} />
         <Route path="me/bonuses" element={<BonusesPage />} />
         <Route path="me/achievements" element={<AchievementsPage />} />

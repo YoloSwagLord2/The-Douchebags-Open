@@ -62,7 +62,7 @@ export function AppShell() {
         ) : (
           <>
             <NavLink to="/leaderboard">Board</NavLink>
-            {latestRound ? <NavLink to={`/round/${latestRound.id}/entry`}>Score</NavLink> : <span>Score</span>}
+            <NavLink to="/score">Score</NavLink>
             <NavLink to="/me/bonuses">Bonuses</NavLink>
             <NavLink to="/me/achievements">Awards</NavLink>
             <NavLink to="/notifications">
