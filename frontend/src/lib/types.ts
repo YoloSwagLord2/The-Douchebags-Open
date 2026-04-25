@@ -201,6 +201,7 @@ export interface TournamentResponse {
   id: string;
   name: string;
   date: string;
+  player_ids: string[];
 }
 
 export interface RoundResponse {

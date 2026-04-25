@@ -200,7 +200,7 @@ def replace_holes(
 
 @router.get("/tournaments", response_model=list[TournamentResponse])
 def list_tournaments(_: User = Depends(require_admin), db: Session = Depends(get_db)):
-    return db.scalars(select(Tournament).order_by(Tournament.date.desc())).all()
+    return db.scalars(select(Tournament).options(joinedload(Tournament.players)).order_by(Tournament.date.desc())).unique().all()
 
 
 @router.post("/tournaments", response_model=TournamentResponse)

@@ -212,6 +212,11 @@ button {
   margin: 0;
 }
 
+.form-success {
+  color: var(--success, #22c55e);
+  margin: 0;
+}
+
 .bottom-nav {
   position: fixed;
   left: 0;

@@ -124,6 +124,7 @@ class TournamentResponse(APIModel):
     id: uuid.UUID
     name: str
     date: dt.date
+    player_ids: list[uuid.UUID] = []
 
 
 class RoundCreate(BaseModel):

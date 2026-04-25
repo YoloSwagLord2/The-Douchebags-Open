@@ -93,6 +93,10 @@ class Tournament(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     rounds: Mapped[list["Round"]] = relationship(back_populates="tournament", cascade="all, delete-orphan")
     players: Mapped[list["TournamentPlayer"]] = relationship(back_populates="tournament", cascade="all, delete-orphan")
 
+    @property
+    def player_ids(self) -> list[uuid.UUID]:
+        return [tp.player_id for tp in self.players]
+
 
 class Round(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "rounds"
