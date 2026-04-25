@@ -9,6 +9,8 @@ export function AdminPlayersPage() {
   const { token } = useAuth();
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
   const [form, setForm] = useState(initialForm);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId);
   const [editForm, setEditForm] = useState({
@@ -42,9 +44,14 @@ export function AdminPlayersPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!token) return;
-    await api.createAdminPlayer(form, token);
-    setForm(initialForm);
-    await load();
+    setCreateError(null);
+    try {
+      await api.createAdminPlayer(form, token);
+      setForm(initialForm);
+      await load();
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Failed to create player");
+    }
   };
 
   const uploadPhoto = async (file: File) => {
@@ -56,8 +63,13 @@ export function AdminPlayersPage() {
   const updateSelectedPlayer = async (event: FormEvent) => {
     event.preventDefault();
     if (!token || !selectedPlayerId) return;
-    await api.updateAdminPlayer(selectedPlayerId, editForm, token);
-    await load();
+    setEditError(null);
+    try {
+      await api.updateAdminPlayer(selectedPlayerId, editForm, token);
+      await load();
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Failed to update player");
+    }
   };
 
   return (
@@ -74,6 +86,7 @@ export function AdminPlayersPage() {
             <option value="player">Player</option>
             <option value="admin">Admin</option>
           </select>
+          {createError && <p className="form-error">{createError}</p>}
           <button className="button-primary" type="submit">Create player</button>
         </form>
       </section>
@@ -115,6 +128,7 @@ export function AdminPlayersPage() {
               />
               <span>Active</span>
             </label>
+            {editError && <p className="form-error">{editError}</p>}
             <button className="button-secondary" type="submit">Update selected player</button>
           </form>
         ) : null}
