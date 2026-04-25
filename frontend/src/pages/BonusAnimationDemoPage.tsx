@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import lottie from "lottie-web";
+import { useState, type CSSProperties } from "react";
 
 const demoBonus = {
   ruleName: "Secret Splash Bonus",
@@ -20,7 +19,7 @@ function customProperties(values: Record<string, string>) {
 
 function PaintMeltSheet() {
   return (
-    <svg aria-hidden="true" className="bonus-demo__melt-sheet" preserveAspectRatio="none" viewBox="0 0 1440 760">
+    <svg aria-hidden="true" className="bonus-demo__melt-sheet" preserveAspectRatio="xMidYMin meet" viewBox="0 0 1440 760">
       <path
         d="M0 0H1440V250C1426 261 1430 286 1433 320C1439 412 1359 420 1349 324C1343 267 1350 242 1323 238C1288 235 1265 288 1232 260C1202 234 1167 205 1125 253C1093 290 1048 283 1018 240C990 202 944 214 931 262C922 297 943 346 909 374C878 400 832 379 838 326C845 256 799 227 760 252C724 276 684 276 651 239C617 202 570 220 557 274C545 325 567 392 520 412C480 429 440 385 454 323C470 253 430 226 391 252C354 277 327 275 300 238C271 199 218 217 211 273C204 335 224 392 183 413C139 436 103 400 113 325C122 255 84 221 42 250C22 264 10 254 0 250V0Z"
         fill="currentColor"
@@ -66,65 +65,125 @@ function TrophyIcon() {
   );
 }
 
+function DemoScoreEntryScreen() {
+  return (
+    <section className="bonus-demo__score-screen" aria-label="Score entry screen">
+      <header className="bonus-demo__score-header">
+        <div>
+          <p>The Douchebags Open • Round 1</p>
+          <h1>Enter your scores</h1>
+        </div>
+        <span>7/18</span>
+      </header>
+
+      <section className="bonus-demo__hole-card">
+        <div className="bonus-demo__hole-header">
+          <div>
+            <p>Current hole</p>
+            <h2>Hole 7</h2>
+          </div>
+          <div className="bonus-demo__hole-meta">
+            <span>Par 4</span>
+            <span>SI 9</span>
+            <span>374m</span>
+          </div>
+        </div>
+
+        <div className="bonus-demo__stroke-display">4</div>
+        <div className="bonus-demo__stroke-controls" aria-label="Stroke controls">
+          <button type="button">-</button>
+          <input aria-label="Strokes" inputMode="numeric" readOnly type="number" value="4" />
+          <button type="button">+</button>
+        </div>
+
+        <div className="bonus-demo__score-actions">
+          <button type="button">Previous</button>
+          <button type="button">Save and continue</button>
+        </div>
+      </section>
+
+      <section className="bonus-demo__totals" aria-label="Score totals">
+        <div>
+          <span>Gross</span>
+          <strong>32</strong>
+        </div>
+        <div>
+          <span>Official</span>
+          <strong>15</strong>
+        </div>
+        <div>
+          <span>Bonus</span>
+          <strong>7</strong>
+        </div>
+        <div>
+          <span>Adj.</span>
+          <strong>22</strong>
+        </div>
+      </section>
+    </section>
+  );
+}
+
 export function BonusAnimationDemoPage() {
-  const containerRef = useRef<HTMLDivElement | null>(null);
   const [playKey, setPlayKey] = useState(0);
+  const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.innerHTML = "";
-    const animation = lottie.loadAnimation({
-      container,
-      renderer: "svg",
-      loop: false,
-      autoplay: true,
-      path: "/animations/white-paint-drip-demo.json",
-      rendererSettings: {
-        preserveAspectRatio: "xMidYMid slice",
-      },
-    });
-
-    return () => animation.destroy();
-  }, [playKey]);
+  const replay = () => {
+    setDismissed(false);
+    setPlayKey((current) => current + 1);
+  };
 
   return (
     <main className="bonus-demo" aria-label="Bonus unlock animation demo">
-      <div className="bonus-demo__photo" />
-      <div className="bonus-demo__shade" />
-      <div className="bonus-demo__prelude">
-        <p>Bonus unlocked</p>
-        <strong>{demoBonus.ruleName}</strong>
-      </div>
-      <div className="bonus-demo__paint" ref={containerRef} aria-hidden="true" />
-      <div className="bonus-demo__paint-effects" key={`paint-${playKey}`} aria-hidden="true">
-        <PaintMeltSheet />
-        {paintSplatters.map((splatter, index) => (
-          <span
-            className="bonus-demo__splatter"
-            key={`splatter-${index}`}
-            style={customProperties({
-              "--splatter-x": splatter.x,
-              "--splatter-y": splatter.y,
-              "--splatter-size": splatter.size,
-              "--splatter-delay": splatter.delay,
-            })}
-          />
-        ))}
-      </div>
-      <section className="bonus-demo__award" key={playKey}>
-        <div className="bonus-demo__trophy">
-          <TrophyIcon />
-        </div>
-        <p className="bonus-demo__kicker">Bonus received</p>
-        <h1>{demoBonus.ruleName}</h1>
-        <p className="bonus-demo__points">+{demoBonus.points} bonus Stableford</p>
-        <p className="bonus-demo__message">{demoBonus.message}</p>
-        <button className="bonus-demo__button" onClick={() => setPlayKey((current) => current + 1)} type="button">
-          Replay
+      <DemoScoreEntryScreen />
+      {!dismissed ? (
+        <>
+          <div className="bonus-demo__shade" />
+          <div className="bonus-demo__prelude">
+            <p>Bonus unlocked</p>
+            <strong>{demoBonus.ruleName}</strong>
+          </div>
+          <div className="bonus-demo__paint-effects" key={`paint-${playKey}`} aria-hidden="true">
+            <PaintMeltSheet />
+            {paintSplatters.map((splatter, index) => (
+              <span
+                className="bonus-demo__splatter"
+                key={`splatter-${index}`}
+                style={customProperties({
+                  "--splatter-x": splatter.x,
+                  "--splatter-y": splatter.y,
+                  "--splatter-size": splatter.size,
+                  "--splatter-delay": splatter.delay,
+                })}
+              />
+            ))}
+          </div>
+          <section className="bonus-demo__award" key={playKey}>
+            <button
+              aria-label="Close bonus message"
+              className="bonus-demo__close"
+              onClick={() => setDismissed(true)}
+              type="button"
+            >
+              X
+            </button>
+            <div className="bonus-demo__trophy">
+              <TrophyIcon />
+            </div>
+            <p className="bonus-demo__kicker">Bonus received</p>
+            <h1>{demoBonus.ruleName}</h1>
+            <p className="bonus-demo__points">+{demoBonus.points} bonus Stableford</p>
+            <p className="bonus-demo__message">{demoBonus.message}</p>
+            <button className="bonus-demo__button" onClick={replay} type="button">
+              Replay
+            </button>
+          </section>
+        </>
+      ) : (
+        <button className="bonus-demo__replay-docked" onClick={replay} type="button">
+          Replay demo
         </button>
-      </section>
+      )}
     </main>
   );
 }
