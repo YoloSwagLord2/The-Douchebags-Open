@@ -145,7 +145,7 @@ def delete_player_photo(player_id: uuid.UUID, _: User = Depends(require_admin), 
 
 @router.get("/courses", response_model=list[CourseResponse])
 def list_courses(_: User = Depends(require_admin), db: Session = Depends(get_db)):
-    courses = db.scalars(select(Course).options(joinedload(Course.holes)).order_by(Course.name.asc())).all()
+    courses = db.scalars(select(Course).options(joinedload(Course.holes)).order_by(Course.name.asc())).unique().all()
     return courses
 
 
