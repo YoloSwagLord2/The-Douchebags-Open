@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import type { PlayerResponse } from "../lib/types";
+import { t, parseErrorMessage } from "../lib/i18n";
 
 const initialForm = { name: "", email: "", password: "", hcp: 18, role: "player" };
 
@@ -52,7 +53,7 @@ export function AdminPlayersPage() {
       setForm(initialForm);
       await load();
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Failed to create player");
+      setCreateError(parseErrorMessage(err));
     }
   };
 
@@ -73,7 +74,7 @@ export function AdminPlayersPage() {
       setEditForm((f) => ({ ...f, password: "" }));
       await load();
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : "Failed to update player");
+      setEditError(parseErrorMessage(err));
     }
   };
 
@@ -81,24 +82,24 @@ export function AdminPlayersPage() {
     <div className="admin-grid">
       <section className="detail-panel">
         <p className="eyebrow">Player setup</p>
-        <h2>Create player</h2>
+        <h2>{t('players.createTitle')}</h2>
         <form className="stack-form" onSubmit={submit}>
-          <input placeholder="Name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-          <input placeholder="Email" type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-          <input placeholder="Password" type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
-          <input placeholder="Handicap" type="number" value={form.hcp} onChange={(event) => setForm({ ...form, hcp: Number(event.target.value) })} />
+          <input placeholder={t('players.name')} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+          <input placeholder={t('auth.email')} type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+          <input placeholder={t('auth.password')} type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
+          <input placeholder={t('players.hcp')} type="number" value={form.hcp} onChange={(event) => setForm({ ...form, hcp: Number(event.target.value) })} />
           <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })}>
-            <option value="player">Player</option>
-            <option value="admin">Admin</option>
+            <option value="player">{t('players.player')}</option>
+            <option value="admin">{t('players.admin')}</option>
           </select>
           {createError && <p className="form-error">{createError}</p>}
-          <button className="button-primary" type="submit">Create player</button>
+          <button className="button-primary" type="submit">{t('players.create')}</button>
         </form>
       </section>
 
       <section className="detail-panel">
         <p className="eyebrow">Roster</p>
-        <h2>Existing players</h2>
+        <h2>{t('players.existingPlayers')}</h2>
         <div className="list-stack">
           {players.map((player) => (
             <label className="selection-row" key={player.id}>
@@ -108,23 +109,23 @@ export function AdminPlayersPage() {
                 type="radio"
               />
               <span>{player.name}</span>
-              <small>{player.role} · hcp {player.hcp}</small>
+              <small>{player.role} · {t('players.hcp')} {player.hcp}</small>
             </label>
           ))}
         </div>
         <label className="upload-box">
-          Upload photo for selected player
+          {t('players.photoUpload')}
           <input type="file" accept="image/*" onChange={(event) => event.target.files?.[0] && uploadPhoto(event.target.files[0])} />
         </label>
         {selectedPlayer ? (
           <form className="stack-form" onSubmit={updateSelectedPlayer}>
-            <input placeholder="Name" value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} />
-            <input placeholder="Email" type="email" value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} />
-            <input placeholder="New password (leave blank to keep current)" type="password" value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} />
-            <input placeholder="Handicap" type="number" value={editForm.hcp} onChange={(event) => setEditForm({ ...editForm, hcp: Number(event.target.value) })} />
+            <input placeholder={t('players.name')} value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} />
+            <input placeholder={t('auth.email')} type="email" value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} />
+            <input placeholder={t('players.newPassword')} type="password" value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} />
+            <input placeholder={t('players.hcp')} type="number" value={editForm.hcp} onChange={(event) => setEditForm({ ...editForm, hcp: Number(event.target.value) })} />
             <select value={editForm.role} onChange={(event) => setEditForm({ ...editForm, role: event.target.value })}>
-              <option value="player">Player</option>
-              <option value="admin">Admin</option>
+              <option value="player">{t('players.player')}</option>
+              <option value="admin">{t('players.admin')}</option>
             </select>
             <label className="selection-row">
               <input
@@ -132,10 +133,10 @@ export function AdminPlayersPage() {
                 onChange={(event) => setEditForm({ ...editForm, is_active: event.target.checked })}
                 type="checkbox"
               />
-              <span>Active</span>
+              <span>{t('players.active')}</span>
             </label>
             {editError && <p className="form-error">{editError}</p>}
-            <button className="button-secondary" type="submit">Update selected player</button>
+            <button className="button-secondary" type="submit">{t('players.update')}</button>
           </form>
         ) : null}
       </section>

@@ -6,6 +6,7 @@ import { api } from "../lib/api";
 import type { NavigationTournament } from "../lib/types";
 import { Modal } from "./Modal";
 import { LottieOrPreset } from "./LottieOrPreset";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export function AppShell() {
   const { user, token, logout } = useAuth();
@@ -23,6 +24,7 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
+      <LanguageSwitcher />
       {user?.role === "admin" && (
         <header className="top-hero">
           <div className="top-hero__copy">

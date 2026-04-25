@@ -1,7 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, APIError } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { t, getLanguage, parseErrorMessage } from "../lib/i18n";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -10,6 +12,15 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [, setLanguage] = useState(getLanguage());
+
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      setLanguage(getLanguage());
+    };
+    window.addEventListener('languageChange', handleLanguageChange);
+    return () => window.removeEventListener('languageChange', handleLanguageChange);
+  }, []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -20,7 +31,8 @@ export function LoginPage() {
       login(result);
       navigate("/");
     } catch (err) {
-      setError(err instanceof APIError ? err.message : "Unable to sign in");
+      const errorMsg = err instanceof APIError ? err.message : "Unable to sign in";
+      setError(parseErrorMessage(new Error(errorMsg)));
     } finally {
       setLoading(false);
     }
@@ -28,19 +40,20 @@ export function LoginPage() {
 
   return (
     <div className="login-shell">
+      <LanguageSwitcher />
       <div className="login-panel">
-        <p className="eyebrow">Local tournament control</p>
+        <p className="eyebrow">{t('auth.loginHeader')}</p>
         <h1>The Douchebags Open</h1>
         <p className="hero-subtitle">
-          Mobile-first scoring, live standings, secret side games, and a proper event-day control room.
+          {t('auth.subtitle')}
         </p>
         <form className="stack-form" onSubmit={submit}>
           <label>
-            Email
+            {t('auth.email')}
             <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
           </label>
           <label>
-            Password
+            {t('auth.password')}
             <input
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -49,7 +62,7 @@ export function LoginPage() {
           </label>
           {error ? <p className="form-error">{error}</p> : null}
           <button className="button-primary" disabled={loading} type="submit">
-            {loading ? "Signing in..." : "Enter the clubhouse"}
+            {loading ? "Signing in..." : t('auth.login')}
           </button>
         </form>
       </div>
