@@ -22,6 +22,7 @@ from app.models.entities import (
     Round,
     Score,
     ScoreRevision,
+    Tournament,
     TournamentPlayer,
     User,
 )
@@ -31,7 +32,16 @@ from app.models.enums import (
     ScopeType,
     ScoreChangeSource,
 )
-from app.schemas.api import HoleScorecardResponse, LeaderboardEntry, RoundMeta, ScoreTotals
+from app.schemas.api import (
+    HoleScorecardResponse,
+    LeaderboardEntry,
+    PlayerRoundResult,
+    RoundMeta,
+    RoundSummaryItem,
+    ScoreTotals,
+    TournamentOverviewEntry,
+    TournamentOverviewResponse,
+)
 from app.services.notifications import create_notification
 from app.services.rules import evaluate_rule
 from app.utils.serializers import media_url
@@ -510,6 +520,9 @@ def build_round_leaderboard(db: Session, round_obj: Round) -> list[LeaderboardEn
 
 
 def build_tournament_leaderboard(db: Session, tournament_id: uuid.UUID) -> tuple[Any, list[LeaderboardEntry]]:
+    tournament = db.scalar(select(Tournament).where(Tournament.id == tournament_id))
+    if not tournament:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tournament not found")
     rounds = db.scalars(
         select(Round)
         .options(joinedload(Round.course).joinedload(Course.holes), joinedload(Round.tournament))
@@ -517,8 +530,7 @@ def build_tournament_leaderboard(db: Session, tournament_id: uuid.UUID) -> tuple
         .order_by(Round.round_number.asc())
     ).all()
     if not rounds:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tournament has no rounds")
-    tournament = rounds[0].tournament
+        return tournament, []
     roster_players = db.scalars(
         select(User)
         .join(TournamentPlayer, TournamentPlayer.player_id == User.id)
@@ -602,3 +614,61 @@ def apply_positions(entries: list[LeaderboardEntry], *, mode: str) -> list[Leade
             previous_key = key
         entry.bonus_position = position
     return entries
+
+
+def build_tournament_overview(db: Session, tournament_id: uuid.UUID) -> TournamentOverviewResponse:
+    tournament = db.scalar(select(Tournament).where(Tournament.id == tournament_id))
+    if not tournament:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tournament not found")
+
+    rounds = db.scalars(
+        select(Round)
+        .options(joinedload(Round.course).joinedload(Course.holes))
+        .where(Round.tournament_id == tournament_id)
+        .order_by(Round.round_number.asc())
+    ).all()
+
+    round_summaries = [
+        RoundSummaryItem(id=r.id, round_number=r.round_number, date=r.date, course_name=r.course.name)
+        for r in rounds
+    ]
+
+    roster_players = db.scalars(
+        select(User)
+        .join(TournamentPlayer, TournamentPlayer.player_id == User.id)
+        .where(TournamentPlayer.tournament_id == tournament_id)
+        .order_by(User.name.asc())
+    ).all()
+
+    entries: list[TournamentOverviewEntry] = []
+    for player in roster_players:
+        round_results: list[PlayerRoundResult] = []
+        total_stableford = 0
+        total_holes_played = 0
+        for round_obj in rounds:
+            scores = get_player_scores(db, round_obj.id, player.id)
+            computed = compute_round_totals(round_obj.course, float(player.hcp), scores)
+            round_results.append(PlayerRoundResult(
+                round_id=round_obj.id,
+                holes_played=computed.totals.holes_played,
+                stableford=computed.totals.official_stableford,
+            ))
+            total_stableford += computed.totals.official_stableford
+            total_holes_played += computed.totals.holes_played
+        entries.append(TournamentOverviewEntry(
+            player_id=player.id,
+            player_name=player.name,
+            avatar_url=media_url(player.photo_avatar_path),
+            round_results=round_results,
+            total_stableford=total_stableford,
+            total_holes_played=total_holes_played,
+        ))
+
+    entries.sort(key=lambda e: -e.total_stableford)
+
+    return TournamentOverviewResponse(
+        tournament_id=tournament.id,
+        tournament_name=tournament.name,
+        rounds=round_summaries,
+        entries=entries,
+    )

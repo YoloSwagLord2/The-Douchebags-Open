@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.schemas.api import LeaderboardResponse
+from app.schemas.api import LeaderboardResponse, TournamentOverviewResponse
 from app.services.scoring import (
     apply_positions,
     build_round_leaderboard,
     build_tournament_leaderboard,
+    build_tournament_overview,
     get_round_or_404,
 )
 
@@ -28,6 +29,11 @@ def round_leaderboard(round_id: uuid.UUID, db: Session = Depends(get_db)) -> Lea
         official_entries=official_entries,
         bonus_entries=bonus_entries,
     )
+
+
+@router.get("/tournaments/{tournament_id}/overview", response_model=TournamentOverviewResponse)
+def tournament_overview(tournament_id: uuid.UUID, db: Session = Depends(get_db)) -> TournamentOverviewResponse:
+    return build_tournament_overview(db, tournament_id)
 
 
 @router.get("/tournaments/{tournament_id}", response_model=LeaderboardResponse)

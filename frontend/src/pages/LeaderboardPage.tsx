@@ -2,8 +2,22 @@ import { useEffect, useMemo, useState } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import type { LeaderboardEntry, LeaderboardResponse, NavigationTournament } from "../lib/types";
+import type {
+  LeaderboardEntry,
+  LeaderboardResponse,
+  NavigationTournament,
+  TournamentOverviewResponse,
+} from "../lib/types";
 import { LeaderboardTable } from "../components/LeaderboardTable";
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
 
 function FeaturedLeader({ entry }: { entry?: LeaderboardEntry }) {
   if (!entry) return null;
@@ -29,10 +43,87 @@ function FeaturedLeader({ entry }: { entry?: LeaderboardEntry }) {
   );
 }
 
+function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
+  if (overview.rounds.length === 0) {
+    return (
+      <section className="detail-panel">
+        <p className="eyebrow">Scoreboard</p>
+        <p style={{ margin: "0.5rem 0 0", color: "var(--text-muted, #8899aa)" }}>
+          No rounds have been set up for this tournament yet.
+        </p>
+      </section>
+    );
+  }
+  if (overview.entries.length === 0) {
+    return (
+      <section className="detail-panel">
+        <p className="eyebrow">Scoreboard</p>
+        <p style={{ margin: "0.5rem 0 0", color: "var(--text-muted, #8899aa)" }}>
+          No players assigned to this tournament yet.
+        </p>
+      </section>
+    );
+  }
+  return (
+    <section className="detail-panel round-matrix">
+      <p className="eyebrow">Scoreboard per round</p>
+      <div style={{ overflowX: "auto" }}>
+        <table className="round-matrix__table">
+          <thead>
+            <tr>
+              <th className="round-matrix__player-col">Player</th>
+              {overview.rounds.map((r) => (
+                <th key={r.id}>R{r.round_number}<br /><small>{r.course_name}</small></th>
+              ))}
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {overview.entries.map((entry) => (
+              <tr key={entry.player_id}>
+                <td className="round-matrix__player-col">
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    {entry.avatar_url ? (
+                      <img
+                        alt={entry.player_name}
+                        className="leaderboard-avatar"
+                        src={entry.avatar_url}
+                        style={{ width: 28, height: 28 }}
+                      />
+                    ) : (
+                      <div className="leaderboard-avatar leaderboard-avatar--fallback" style={{ width: 28, height: 28, fontSize: "0.65rem" }}>
+                        {initials(entry.player_name)}
+                      </div>
+                    )}
+                    <span>{entry.player_name}</span>
+                  </div>
+                </td>
+                {entry.round_results.map((result) => (
+                  <td key={result.round_id} style={{ textAlign: "center" }}>
+                    {result.holes_played === 0 ? (
+                      <span style={{ color: "var(--text-muted, #8899aa)" }}>—</span>
+                    ) : (
+                      <strong>{result.stableford}</strong>
+                    )}
+                  </td>
+                ))}
+                <td style={{ textAlign: "center" }}>
+                  <strong>{entry.total_stableford}</strong>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 export function LeaderboardPage({ scope }: { scope: "round" | "tournament" }) {
   const { token } = useAuth();
   const params = useParams();
   const [data, setData] = useState<LeaderboardResponse | null>(null);
+  const [overview, setOverview] = useState<TournamentOverviewResponse | null>(null);
   const [mode, setMode] = useState<"official" | "bonus">("official");
   const outlet = useOutletContext<{ navigation: NavigationTournament[] }>();
 
@@ -40,24 +131,32 @@ export function LeaderboardPage({ scope }: { scope: "round" | "tournament" }) {
     if (!token) return;
     const id = scope === "round" ? params.id ?? params.roundId : params.id ?? params.tournamentId;
     if (!id) return;
-    const call = scope === "round" ? api.roundLeaderboard(id, token) : api.tournamentLeaderboard(id, token);
-    call.then(setData).catch(() => undefined);
+    if (scope === "round") {
+      api.roundLeaderboard(id, token).then(setData).catch(() => undefined);
+    } else {
+      api.tournamentLeaderboard(id, token).then(setData).catch(() => undefined);
+      api.tournamentOverview(id, token).then(setOverview).catch(() => undefined);
+    }
   }, [params.id, params.roundId, params.tournamentId, scope, token]);
 
   const entries = mode === "official" ? data?.official_entries ?? [] : data?.bonus_entries ?? [];
   const leader = useMemo(() => entries[0], [entries]);
   const navTournament = outlet.navigation.find((item) => item.id === data?.tournament.id);
 
+  const tournamentName = scope === "tournament"
+    ? (overview?.tournament_name ?? data?.tournament.name ?? "Loading…")
+    : (data?.tournament.name ?? "Loading…");
+
   return (
     <div className="stack-layout">
       <section className="masthead-panel">
         <div>
           <p className="eyebrow">{scope === "round" ? "Round leaderboard" : "Tournament leaderboard"}</p>
-          <h2>{data?.tournament.name ?? "Loading leaderboard"}</h2>
+          <h2>{tournamentName}</h2>
           <p className="hero-subtitle">
             {scope === "round"
               ? `Round ${data?.round?.round_number ?? "—"} at ${navTournament?.rounds.find((item) => item.id === data?.round?.id)?.course_name ?? data?.round?.round_number ?? ""}`
-              : "Official board plus bonus-adjusted standings with secret side-game impact."}
+              : "Official standings and bonus-adjusted rankings."}
           </p>
         </div>
         <div className="segmented-control">
@@ -69,9 +168,23 @@ export function LeaderboardPage({ scope }: { scope: "round" | "tournament" }) {
           </button>
         </div>
       </section>
-      <FeaturedLeader entry={leader} />
-      <LeaderboardTable entries={entries} mode={mode} />
+
+      {scope === "tournament" && overview ? (
+        <>
+          <RoundMatrix overview={overview} />
+          {entries.length > 0 && (
+            <>
+              <FeaturedLeader entry={leader} />
+              <LeaderboardTable entries={entries} mode={mode} />
+            </>
+          )}
+        </>
+      ) : (
+        <>
+          <FeaturedLeader entry={leader} />
+          <LeaderboardTable entries={entries} mode={mode} />
+        </>
+      )}
     </div>
   );
 }
-

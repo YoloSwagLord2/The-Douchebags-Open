@@ -11,6 +11,7 @@ import type {
   PlayerResponse,
   RoundResponse,
   ScorecardResponse,
+  TournamentOverviewResponse,
   TournamentResponse,
 } from "./types";
 
@@ -103,6 +104,8 @@ export const api = {
     request<CourseResponse>(`/admin/courses/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
   replaceCourseHoles: (id: string, holes: Array<Record<string, unknown>>, token: string) =>
     request<CourseResponse>(`/admin/courses/${id}/holes`, { method: "PUT", body: JSON.stringify(holes) }, token),
+  tournamentOverview: (id: string, token: string) =>
+    request<TournamentOverviewResponse>(`/leaderboards/tournaments/${id}/overview`, {}, token),
   adminTournaments: (token: string) => request<TournamentResponse[]>("/admin/tournaments", {}, token),
   createTournament: (payload: Record<string, unknown>, token: string) =>
     request<TournamentResponse>("/admin/tournaments", { method: "POST", body: JSON.stringify(payload) }, token),

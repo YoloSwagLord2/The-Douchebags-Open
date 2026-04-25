@@ -217,6 +217,31 @@ button {
   margin: 0;
 }
 
+.round-matrix__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.round-matrix__table th,
+.round-matrix__table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.round-matrix__table th {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-muted, #8899aa);
+}
+
+.round-matrix__player-col {
+  text-align: left !important;
+  min-width: 140px;
+}
+
 .bottom-nav {
   position: fixed;
   left: 0;

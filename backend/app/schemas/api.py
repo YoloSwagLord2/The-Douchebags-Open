@@ -170,6 +170,35 @@ class TournamentRosterUpdate(BaseModel):
     player_ids: list[uuid.UUID]
 
 
+class RoundSummaryItem(APIModel):
+    id: uuid.UUID
+    round_number: int
+    date: dt.date
+    course_name: str
+
+
+class PlayerRoundResult(APIModel):
+    round_id: uuid.UUID
+    holes_played: int
+    stableford: int
+
+
+class TournamentOverviewEntry(APIModel):
+    player_id: uuid.UUID
+    player_name: str
+    avatar_url: str | None
+    round_results: list[PlayerRoundResult]
+    total_stableford: int
+    total_holes_played: int
+
+
+class TournamentOverviewResponse(APIModel):
+    tournament_id: uuid.UUID
+    tournament_name: str
+    rounds: list[RoundSummaryItem]
+    entries: list[TournamentOverviewEntry]
+
+
 class ScoreInput(BaseModel):
     hole_id: uuid.UUID
     strokes: int = Field(ge=1, le=25)

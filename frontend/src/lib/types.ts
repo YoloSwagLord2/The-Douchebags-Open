@@ -241,6 +241,35 @@ export interface AchievementRuleResponse {
   enabled: boolean;
 }
 
+export interface RoundSummaryItem {
+  id: string;
+  round_number: number;
+  date: string;
+  course_name: string;
+}
+
+export interface PlayerRoundResult {
+  round_id: string;
+  holes_played: number;
+  stableford: number;
+}
+
+export interface TournamentOverviewEntry {
+  player_id: string;
+  player_name: string;
+  avatar_url?: string | null;
+  round_results: PlayerRoundResult[];
+  total_stableford: number;
+  total_holes_played: number;
+}
+
+export interface TournamentOverviewResponse {
+  tournament_id: string;
+  tournament_name: string;
+  rounds: RoundSummaryItem[];
+  entries: TournamentOverviewEntry[];
+}
+
 export type RuleOperator = "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "in";
 export type RuleField =
   | "strokes"
