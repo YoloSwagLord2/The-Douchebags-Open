@@ -44,6 +44,11 @@ export function AppShell() {
           </div>
         </header>
       )}
+      {user?.role !== "admin" && (
+        <div className="player-bar">
+          <button className="button-ghost" onClick={logout} type="button">Sign out</button>
+        </div>
+      )}
 
       <main className="page-shell">
         <Outlet context={{ navigation }} />
@@ -69,9 +74,6 @@ export function AppShell() {
               Inbox
               {unreadCount ? <span className="badge">{unreadCount}</span> : null}
             </NavLink>
-            <button onClick={logout} type="button">
-              Sign out
-            </button>
           </>
         )}
       </nav>
