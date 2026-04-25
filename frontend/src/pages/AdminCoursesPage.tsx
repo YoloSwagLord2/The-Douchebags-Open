@@ -12,6 +12,7 @@ export function AdminCoursesPage() {
   const [slope, setSlope] = useState(113);
   const [rating, setRating] = useState(72);
   const [holes, setHoles] = useState(Array.from({ length: 18 }, (_, index) => blankHole(index)));
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
     if (!token) return;
@@ -25,10 +26,15 @@ export function AdminCoursesPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!token) return;
-    const course = await api.createCourse({ name, slope_rating: slope, course_rating: rating }, token);
-    await api.replaceCourseHoles(course.id, holes, token);
-    setName("");
-    await load();
+    setError(null);
+    try {
+      const course = await api.createCourse({ name, slope_rating: slope, course_rating: rating }, token);
+      await api.replaceCourseHoles(course.id, holes, token);
+      setName("");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save course");
+    }
   };
 
   return (
@@ -44,12 +50,13 @@ export function AdminCoursesPage() {
             {holes.map((hole, index) => (
               <div className="hole-grid__cell" key={hole.hole_number}>
                 <strong>Hole {hole.hole_number}</strong>
-                <input type="number" value={hole.par} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, par: Number(event.target.value) } : item))} />
-                <input type="number" value={hole.stroke_index} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, stroke_index: Number(event.target.value) } : item))} />
-                <input type="number" value={hole.distance} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, distance: Number(event.target.value) } : item))} />
+                <input type="number" placeholder="Par (3–7)" value={hole.par} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, par: Number(event.target.value) } : item))} />
+                <input type="number" placeholder="Stroke index" value={hole.stroke_index} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, stroke_index: Number(event.target.value) } : item))} />
+                <input type="number" placeholder="Distance (m)" value={hole.distance} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, distance: Number(event.target.value) } : item))} />
               </div>
             ))}
           </div>
+          {error && <p className="form-error">{error}</p>}
           <button className="button-primary" type="submit">Save course</button>
         </form>
       </section>
