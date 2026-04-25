@@ -3,16 +3,68 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import type { CourseResponse } from "../lib/types";
 
-const blankHole = (index: number) => ({ hole_number: index + 1, par: 4, stroke_index: index + 1, distance: 320 });
+type HoleRow = { hole_number: number; par: number; stroke_index: number; distance: number };
+
+const blankHole = (index: number): HoleRow => ({ hole_number: index + 1, par: 4, stroke_index: index + 1, distance: 320 });
+
+function HoleEditor({
+  holes,
+  setHoles,
+}: {
+  holes: HoleRow[];
+  setHoles: React.Dispatch<React.SetStateAction<HoleRow[]>>;
+}) {
+  return (
+    <div className="hole-grid">
+      {holes.map((hole, index) => (
+        <div className="hole-grid__cell" key={hole.hole_number}>
+          <strong>Hole {hole.hole_number}</strong>
+          <label className="field-label">
+            Par
+            <input
+              type="number" min={3} max={7} value={hole.par}
+              onChange={(e) => setHoles((cur) => cur.map((h, i) => i === index ? { ...h, par: Number(e.target.value) } : h))}
+            />
+          </label>
+          <label className="field-label">
+            Stroke index
+            <input
+              type="number" min={1} max={18} value={hole.stroke_index}
+              onChange={(e) => setHoles((cur) => cur.map((h, i) => i === index ? { ...h, stroke_index: Number(e.target.value) } : h))}
+            />
+          </label>
+          <label className="field-label">
+            Distance (m)
+            <input
+              type="number" min={1} value={hole.distance}
+              onChange={(e) => setHoles((cur) => cur.map((h, i) => i === index ? { ...h, distance: Number(e.target.value) } : h))}
+            />
+          </label>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function AdminCoursesPage() {
   const { token } = useAuth();
   const [courses, setCourses] = useState<CourseResponse[]>([]);
+
+  // Create form
   const [name, setName] = useState("");
   const [slope, setSlope] = useState(113);
   const [rating, setRating] = useState(72);
-  const [holes, setHoles] = useState(Array.from({ length: 18 }, (_, index) => blankHole(index)));
-  const [error, setError] = useState<string | null>(null);
+  const [holes, setHoles] = useState<HoleRow[]>(Array.from({ length: 18 }, (_, i) => blankHole(i)));
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  // Edit form
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const [editName, setEditName] = useState("");
+  const [editSlope, setEditSlope] = useState(113);
+  const [editRating, setEditRating] = useState(72);
+  const [editHoles, setEditHoles] = useState<HoleRow[]>([]);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState(false);
 
   const load = async () => {
     if (!token) return;
@@ -23,73 +75,119 @@ export function AdminCoursesPage() {
     load().catch(() => undefined);
   }, [token]);
 
-  const submit = async (event: FormEvent) => {
+  useEffect(() => {
+    const course = courses.find((c) => c.id === selectedCourseId);
+    if (!course) return;
+    setEditName(course.name);
+    setEditSlope(course.slope_rating);
+    setEditRating(course.course_rating);
+    setEditHoles(
+      [...course.holes]
+        .sort((a, b) => a.hole_number - b.hole_number)
+        .map((h) => ({ hole_number: h.hole_number, par: h.par, stroke_index: h.stroke_index, distance: h.distance })),
+    );
+    setEditError(null);
+    setEditSuccess(false);
+  }, [selectedCourseId]);
+
+  const create = async (event: FormEvent) => {
     event.preventDefault();
     if (!token) return;
-    setError(null);
+    setCreateError(null);
     try {
       const course = await api.createCourse({ name, slope_rating: slope, course_rating: rating }, token);
       await api.replaceCourseHoles(course.id, holes, token);
       setName("");
+      setHoles(Array.from({ length: 18 }, (_, i) => blankHole(i)));
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save course");
+      setCreateError(err instanceof Error ? err.message : "Failed to save course");
     }
   };
+
+  const submitEdit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!token || !selectedCourseId) return;
+    setEditError(null);
+    setEditSuccess(false);
+    try {
+      await api.updateCourse(selectedCourseId, { name: editName, slope_rating: editSlope, course_rating: editRating }, token);
+      await api.replaceCourseHoles(selectedCourseId, editHoles, token);
+      setEditSuccess(true);
+      await load();
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Failed to update course");
+    }
+  };
+
+  const selectedCourse = courses.find((c) => c.id === selectedCourseId);
 
   return (
     <div className="admin-grid">
       <section className="detail-panel">
         <p className="eyebrow">Course architect</p>
         <h2>Create course</h2>
-        <form className="stack-form" onSubmit={submit}>
+        <form className="stack-form" onSubmit={create}>
           <label className="field-label">
             Course name
-            <input placeholder="e.g. Augusta National" value={name} onChange={(event) => setName(event.target.value)} />
+            <input placeholder="e.g. Augusta National" value={name} onChange={(e) => setName(e.target.value)} />
           </label>
           <label className="field-label">
             Slope rating (55–155)
-            <input type="number" min={55} max={155} value={slope} onChange={(event) => setSlope(Number(event.target.value))} />
+            <input type="number" min={55} max={155} value={slope} onChange={(e) => setSlope(Number(e.target.value))} />
           </label>
           <label className="field-label">
             Course rating (50–85)
-            <input type="number" min={50} max={85} step={0.1} value={rating} onChange={(event) => setRating(Number(event.target.value))} />
+            <input type="number" min={50} max={85} step={0.1} value={rating} onChange={(e) => setRating(Number(e.target.value))} />
           </label>
-          <div className="hole-grid">
-            {holes.map((hole, index) => (
-              <div className="hole-grid__cell" key={hole.hole_number}>
-                <strong>Hole {hole.hole_number}</strong>
-                <label className="field-label">
-                  Par
-                  <input type="number" min={3} max={7} value={hole.par} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, par: Number(event.target.value) } : item))} />
-                </label>
-                <label className="field-label">
-                  Stroke index
-                  <input type="number" min={1} max={18} value={hole.stroke_index} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, stroke_index: Number(event.target.value) } : item))} />
-                </label>
-                <label className="field-label">
-                  Distance (m)
-                  <input type="number" min={1} value={hole.distance} onChange={(event) => setHoles((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, distance: Number(event.target.value) } : item))} />
-                </label>
-              </div>
-            ))}
-          </div>
-          {error && <p className="form-error">{error}</p>}
+          <HoleEditor holes={holes} setHoles={setHoles} />
+          {createError && <p className="form-error">{createError}</p>}
           <button className="button-primary" type="submit">Save course</button>
         </form>
       </section>
+
       <section className="detail-panel">
         <p className="eyebrow">Library</p>
         <h2>Configured courses</h2>
         <div className="list-stack">
           {courses.map((course) => (
-            <article className="selection-row" key={course.id}>
+            <label className="selection-row" key={course.id}>
+              <input
+                checked={selectedCourseId === course.id}
+                onChange={() => setSelectedCourseId(course.id)}
+                type="radio"
+              />
               <span>{course.name}</span>
               <small>{course.holes.length} holes · slope {course.slope_rating}</small>
-            </article>
+            </label>
           ))}
         </div>
       </section>
+
+      {selectedCourse && (
+        <section className="detail-panel" style={{ gridColumn: "1 / -1" }}>
+          <p className="eyebrow">Editing</p>
+          <h2>{selectedCourse.name}</h2>
+          <form className="stack-form" onSubmit={submitEdit}>
+            <label className="field-label">
+              Course name
+              <input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </label>
+            <label className="field-label">
+              Slope rating (55–155)
+              <input type="number" min={55} max={155} value={editSlope} onChange={(e) => setEditSlope(Number(e.target.value))} />
+            </label>
+            <label className="field-label">
+              Course rating (50–85)
+              <input type="number" min={50} max={85} step={0.1} value={editRating} onChange={(e) => setEditRating(Number(e.target.value))} />
+            </label>
+            <HoleEditor holes={editHoles} setHoles={setEditHoles} />
+            {editError && <p className="form-error">{editError}</p>}
+            {editSuccess && <p className="form-success">Course updated</p>}
+            <button className="button-secondary" type="submit">Update course</button>
+          </form>
+        </section>
+      )}
     </div>
   );
 }

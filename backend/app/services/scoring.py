@@ -290,7 +290,7 @@ def recompute_bonus_rules(
         .options(joinedload(Round.course).joinedload(Course.holes), joinedload(Round.tournament))
         .where(Round.tournament_id == tournament_id)
         .order_by(Round.round_number.asc())
-    ).all()
+    ).unique().all()
     rounds_by_id = {item.id: item for item in rounds}
     rounds_by_tournament = {tournament_id: rounds}
     player_lookup = {player.id: player for player in db.scalars(select(User)).all()}
@@ -374,7 +374,7 @@ def recompute_achievement_rules(
         .options(joinedload(Round.course).joinedload(Course.holes), joinedload(Round.tournament))
         .where(Round.tournament_id == tournament_id)
         .order_by(Round.round_number.asc())
-    ).all()
+    ).unique().all()
     rounds_by_id = {item.id: item for item in rounds}
     rounds_by_tournament = {tournament_id: rounds}
     player_lookup = {player.id: player for player in db.scalars(select(User)).all()}
@@ -528,7 +528,7 @@ def build_tournament_leaderboard(db: Session, tournament_id: uuid.UUID) -> tuple
         .options(joinedload(Round.course).joinedload(Course.holes), joinedload(Round.tournament))
         .where(Round.tournament_id == tournament_id)
         .order_by(Round.round_number.asc())
-    ).all()
+    ).unique().all()
     if not rounds:
         return tournament, []
     roster_players = db.scalars(
@@ -626,7 +626,7 @@ def build_tournament_overview(db: Session, tournament_id: uuid.UUID) -> Tourname
         .options(joinedload(Round.course).joinedload(Course.holes))
         .where(Round.tournament_id == tournament_id)
         .order_by(Round.round_number.asc())
-    ).all()
+    ).unique().all()
 
     round_summaries = [
         RoundSummaryItem(id=r.id, round_number=r.round_number, date=r.date, course_name=r.course.name)

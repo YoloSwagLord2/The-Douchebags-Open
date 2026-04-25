@@ -33,11 +33,9 @@ export function AppShell() {
           </p>
         </div>
         <div className="top-hero__actions">
-          {latestTournament ? (
-            <Link className="button-primary" to={`/leaderboard/tournament/${latestTournament.id}`}>
-              Open board
-            </Link>
-          ) : null}
+          <Link className="button-primary" to="/leaderboard">
+            Open board
+          </Link>
           {latestRound ? (
             <Link className="button-secondary" to={`/round/${latestRound.id}/entry`}>
               Enter scores
@@ -59,12 +57,13 @@ export function AppShell() {
             <NavLink to="/admin/players">Players</NavLink>
             <NavLink to="/admin/courses">Courses</NavLink>
             <NavLink to="/admin/tournaments">Events</NavLink>
+            <NavLink to="/leaderboard">Board</NavLink>
             <NavLink to="/admin/bonus-rules">Rules</NavLink>
             <NavLink to="/admin/notifications">Inbox</NavLink>
           </>
         ) : (
           <>
-            {latestTournament ? <NavLink to={`/leaderboard/tournament/${latestTournament.id}`}>Board</NavLink> : <span>Board</span>}
+            <NavLink to="/leaderboard">Board</NavLink>
             {latestRound ? <NavLink to={`/round/${latestRound.id}/entry`}>Score</NavLink> : <span>Score</span>}
             <NavLink to="/me/bonuses">Bonuses</NavLink>
             <NavLink to="/me/achievements">Awards</NavLink>

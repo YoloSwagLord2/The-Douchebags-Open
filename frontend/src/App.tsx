@@ -12,6 +12,7 @@ import { AdminRoundsPage } from "./pages/AdminRoundsPage";
 import { AdminTournamentsPage } from "./pages/AdminTournamentsPage";
 import { BonusesPage } from "./pages/BonusesPage";
 import { HomePage } from "./pages/HomePage";
+import { LeaderboardIndexPage } from "./pages/LeaderboardIndexPage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
@@ -43,6 +44,7 @@ export default function App() {
         }
       >
         <Route index element={<HomePage />} />
+        <Route path="leaderboard" element={<LeaderboardIndexPage />} />
         <Route path="leaderboard/tournament/:tournamentId" element={<LeaderboardPage scope="tournament" />} />
         <Route path="leaderboard/round/:roundId" element={<LeaderboardPage scope="round" />} />
         <Route path="round/:roundId/entry" element={<RoundEntryPage />} />

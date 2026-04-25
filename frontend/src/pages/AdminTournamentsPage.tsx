@@ -9,13 +9,20 @@ export function AdminTournamentsPage() {
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
   const [courses, setCourses] = useState<CourseResponse[]>([]);
   const [rounds, setRounds] = useState<RoundResponse[]>([]);
+
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
+
+  // Create tournament form
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
-  const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
+
+  // Roster
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [rosterError, setRosterError] = useState<string | null>(null);
   const [rosterSuccess, setRosterSuccess] = useState(false);
+
+  // Rounds
   const [roundForm, setRoundForm] = useState({ course_id: "", date: "" });
   const [roundError, setRoundError] = useState<string | null>(null);
 
@@ -51,10 +58,11 @@ export function AdminTournamentsPage() {
     if (!token) return;
     setCreateError(null);
     try {
-      await api.createTournament({ name, date }, token);
+      const created = await api.createTournament({ name, date }, token);
       setName("");
       setDate("");
-      await load();
+      const next = await load();
+      if (next) setSelectedTournamentId(created.id);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "Failed to create tournament");
     }
@@ -66,8 +74,8 @@ export function AdminTournamentsPage() {
     setRosterSuccess(false);
     try {
       await api.updateRoster(selectedTournamentId, selectedPlayers, token);
-      const nextTournaments = await load();
-      const updated = nextTournaments?.find((t) => t.id === selectedTournamentId);
+      const next = await load();
+      const updated = next?.find((t) => t.id === selectedTournamentId);
       if (updated) setSelectedPlayers(updated.player_ids);
       setRosterSuccess(true);
     } catch (err) {
@@ -80,12 +88,11 @@ export function AdminTournamentsPage() {
     if (!token || !selectedTournamentId) return;
     setRoundError(null);
     const tournamentRounds = rounds.filter((r) => r.tournament_id === selectedTournamentId);
-    const nextNumber = tournamentRounds.length + 1;
     try {
       await api.createRound({
         tournament_id: selectedTournamentId,
         course_id: roundForm.course_id,
-        round_number: nextNumber,
+        round_number: tournamentRounds.length + 1,
         date: roundForm.date,
       }, token);
       setRoundForm({ course_id: "", date: "" });
@@ -112,6 +119,22 @@ export function AdminTournamentsPage() {
 
   return (
     <div className="admin-grid">
+
+      {/* Tournament selector — full width at the top */}
+      <section className="detail-panel" style={{ gridColumn: "1 / -1" }}>
+        <p className="eyebrow">Working event</p>
+        <label className="field-label">
+          Select tournament to manage
+          <select value={selectedTournamentId} onChange={(e) => setSelectedTournamentId(e.target.value)}>
+            <option value="">— choose a tournament —</option>
+            {tournaments.map((t) => (
+              <option key={t.id} value={t.id}>{t.name} ({t.date})</option>
+            ))}
+          </select>
+        </label>
+      </section>
+
+      {/* Left: Create new tournament */}
       <section className="detail-panel">
         <p className="eyebrow">Event desk</p>
         <h2>Create tournament</h2>
@@ -129,56 +152,53 @@ export function AdminTournamentsPage() {
         </form>
       </section>
 
-      <section className="detail-panel">
-        <p className="eyebrow">Roster</p>
-        <h2>Assign players</h2>
-        <label className="field-label">
-          Tournament
-          <select value={selectedTournamentId} onChange={(e) => setSelectedTournamentId(e.target.value)}>
-            <option value="">Select tournament</option>
-            {tournaments.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+      {/* Right: Roster for selected tournament */}
+      {selectedTournament ? (
+        <section className="detail-panel">
+          <p className="eyebrow">Roster — {selectedTournament.name}</p>
+          <h2>Assign players</h2>
+          <p className="eyebrow" style={{ marginTop: "0.5rem" }}>
+            {selectedPlayers.length} of {players.length} players assigned
+          </p>
+          <div className="list-stack">
+            {players.map((player) => (
+              <label className="selection-row" key={player.id}>
+                <input
+                  checked={selectedPlayers.includes(player.id)}
+                  onChange={() =>
+                    setSelectedPlayers((cur) =>
+                      cur.includes(player.id) ? cur.filter((id) => id !== player.id) : [...cur, player.id],
+                    )
+                  }
+                  type="checkbox"
+                />
+                <span>{player.name}</span>
+                <small>hcp {player.hcp}</small>
+              </label>
             ))}
-          </select>
-        </label>
-        {selectedTournament && (
-          <>
-            <p className="eyebrow" style={{ marginTop: "1rem" }}>
-              {selectedPlayers.length} of {players.length} players assigned
-            </p>
-            <div className="list-stack">
-              {players.map((player) => (
-                <label className="selection-row" key={player.id}>
-                  <input
-                    checked={selectedPlayers.includes(player.id)}
-                    onChange={() =>
-                      setSelectedPlayers((current) =>
-                        current.includes(player.id)
-                          ? current.filter((id) => id !== player.id)
-                          : [...current, player.id],
-                      )
-                    }
-                    type="checkbox"
-                  />
-                  <span>{player.name}</span>
-                  <small>hcp {player.hcp}</small>
-                </label>
-              ))}
-            </div>
-            {rosterError && <p className="form-error">{rosterError}</p>}
-            {rosterSuccess && <p className="form-success">Roster saved</p>}
-            <button className="button-primary" type="button" onClick={saveRoster}>Save roster</button>
-          </>
-        )}
-      </section>
+          </div>
+          {rosterError && <p className="form-error">{rosterError}</p>}
+          {rosterSuccess && <p className="form-success">Roster saved</p>}
+          <button className="button-primary" type="button" onClick={saveRoster}>Save roster</button>
+        </section>
+      ) : (
+        <section className="detail-panel">
+          <p className="eyebrow">Roster</p>
+          <h2>Assign players</h2>
+          <p style={{ color: "var(--text-muted, #8899aa)", margin: "0.5rem 0 0" }}>
+            Select a tournament above to manage its roster.
+          </p>
+        </section>
+      )}
 
+      {/* Full-width: Rounds for selected tournament */}
       {selectedTournament && (
         <section className="detail-panel" style={{ gridColumn: "1 / -1" }}>
           <p className="eyebrow">Rounds — {selectedTournament.name}</p>
           <h2>Manage rounds</h2>
           <div className="admin-grid" style={{ padding: 0 }}>
             <div>
-              <h3 style={{ marginBottom: "0.75rem" }}>Add round</h3>
+              <h3 style={{ marginBottom: "0.75rem" }}>Add round {tournamentRounds.length + 1}</h3>
               <form className="stack-form" onSubmit={createRound}>
                 <label className="field-label">
                   Course
@@ -203,9 +223,7 @@ export function AdminTournamentsPage() {
                   />
                 </label>
                 {roundError && <p className="form-error">{roundError}</p>}
-                <button className="button-primary" type="submit">
-                  Add round {tournamentRounds.length + 1}
-                </button>
+                <button className="button-primary" type="submit">Add round</button>
               </form>
             </div>
             <div>
