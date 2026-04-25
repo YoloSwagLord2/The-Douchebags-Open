@@ -25,9 +25,9 @@ def _user_summary(user: User) -> UserSummary:
 
 @router.post("/login", response_model=AuthResponse)
 def login(payload: AuthLoginRequest, db: Session = Depends(get_db)) -> AuthResponse:
-    user = db.scalar(select(User).where(User.email == payload.email.lower()))
+    user = db.scalar(select(User).where(User.username == payload.username.lower()))
     if not user or not verify_password(payload.password, user.password_hash) or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
     return AuthResponse(access_token=create_access_token(str(user.id)), user=_user_summary(user))
 
 

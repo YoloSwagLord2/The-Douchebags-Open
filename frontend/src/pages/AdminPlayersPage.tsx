@@ -4,7 +4,7 @@ import { useAuth } from "../lib/auth";
 import type { PlayerResponse } from "../lib/types";
 import { t, parseErrorMessage } from "../lib/i18n";
 
-const initialForm = { name: "", email: "", password: "", hcp: 18, role: "player" };
+const initialForm = { name: "", username: "", email: "", password: "", hcp: 18, role: "player" };
 
 export function AdminPlayersPage() {
   const { token } = useAuth();
@@ -85,6 +85,7 @@ export function AdminPlayersPage() {
         <h2>{t('players.createTitle')}</h2>
         <form className="stack-form" onSubmit={submit}>
           <input placeholder={t('players.name')} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+          <input placeholder="Username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} />
           <input placeholder={t('auth.email')} type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
           <input placeholder={t('auth.password')} type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
           <input placeholder={t('players.hcp')} type="number" value={form.hcp} onChange={(event) => setForm({ ...form, hcp: Number(event.target.value) })} />

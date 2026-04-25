@@ -8,7 +8,7 @@ import { LanguageSwitcher } from "../components/LanguageSwitcher";
 export function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,7 @@ export function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await api.login(email, password);
+      const result = await api.login(username, password);
       login(result);
       navigate("/");
     } catch (err) {
@@ -49,8 +49,8 @@ export function LoginPage() {
         </p>
         <form className="stack-form" onSubmit={submit}>
           <label>
-            {t('auth.email')}
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
+            Username
+            <input value={username} onChange={(event) => setUsername(event.target.value)} type="text" placeholder="Enter your username" />
           </label>
           <label>
             {t('auth.password')}

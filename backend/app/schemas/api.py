@@ -27,7 +27,7 @@ class TokenPayload(APIModel):
 
 
 class AuthLoginRequest(BaseModel):
-    email: EmailStr
+    username: str
     password: str
 
 
@@ -84,6 +84,7 @@ class CourseResponse(APIModel):
 
 class PlayerCreate(BaseModel):
     name: str
+    username: str = Field(min_length=3, max_length=120)
     email: EmailStr
     password: str = Field(min_length=8)
     hcp: float = Field(ge=0, le=54)

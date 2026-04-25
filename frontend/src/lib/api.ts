@@ -55,10 +55,10 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
 }
 
 export const api = {
-  login: (email: string, password: string) =>
+  login: (username: string, password: string) =>
     request<AuthResponse>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
     }),
   me: (token: string) => request<AuthResponse["user"]>("/auth/me", {}, token),
   navigation: (token: string) => request<NavigationTournament[]>("/catalog/navigation", {}, token),
