@@ -7,6 +7,7 @@ import type { NavigationTournament } from "../lib/types";
 import { Modal } from "./Modal";
 import { LottieOrPreset } from "./LottieOrPreset";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 import { t } from "../lib/i18n";
 
 export function AppShell() {
@@ -40,7 +41,10 @@ export function AppShell() {
                 {t('score.enterScores')}
               </Link>
             ) : null}
-            <LanguageSwitcher />
+            <div className="app-controls">
+              <LanguageSwitcher />
+              <ThemeSwitcher />
+            </div>
             <button className="button-ghost" onClick={logout} type="button">
               {t('app.signOut')}
             </button>
@@ -49,7 +53,10 @@ export function AppShell() {
       )}
       {user?.role !== "admin" && (
         <div className="player-bar">
-          <LanguageSwitcher />
+          <div className="app-controls">
+            <LanguageSwitcher />
+            <ThemeSwitcher />
+          </div>
           <button className="button-ghost" onClick={logout} type="button">{t('app.signOut')}</button>
         </div>
       )}

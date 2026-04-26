@@ -5,10 +5,12 @@ import App from "./App";
 import { AuthProvider } from "./lib/auth";
 import { PopupProvider } from "./lib/popups";
 import { initLanguage } from "./lib/i18n";
+import { initTheme } from "./lib/theme";
 import "./styles.css";
 
 // Initialize language on app startup
 initLanguage();
+initTheme();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -21,4 +23,3 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </BrowserRouter>
   </React.StrictMode>,
 );
-

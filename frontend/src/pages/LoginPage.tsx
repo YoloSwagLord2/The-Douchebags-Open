@@ -4,6 +4,7 @@ import { api, APIError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { t, getLanguage, parseErrorMessage } from "../lib/i18n";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
+import { ThemeSwitcher } from "../components/ThemeSwitcher";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -40,7 +41,10 @@ export function LoginPage() {
 
   return (
     <div className="login-shell">
-      <LanguageSwitcher className="language-switcher--floating" />
+      <div className="app-controls app-controls--floating">
+        <LanguageSwitcher />
+        <ThemeSwitcher />
+      </div>
       <div className="login-panel">
         <p className="eyebrow">{t('auth.loginHeader')}</p>
         <h1>The Douchebags Open</h1>

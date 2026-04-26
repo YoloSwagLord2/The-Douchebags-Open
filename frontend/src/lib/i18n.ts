@@ -16,6 +16,8 @@ const translations = {
     'app.title': 'Tournament Control',
     'app.signOut': 'Sign out',
     'app.loading': 'Loading your tournament deck…',
+    'theme.light': 'Light',
+    'theme.dark': 'Dark',
 
     // Navigation
     'nav.players': 'Players',
@@ -191,6 +193,8 @@ const translations = {
     'app.title': 'Toernooi Beheer',
     'app.signOut': 'Uitloggen',
     'app.loading': 'Toernooioverzicht laden…',
+    'theme.light': 'Licht',
+    'theme.dark': 'Donker',
 
     // Navigation
     'nav.players': 'Spelers',
