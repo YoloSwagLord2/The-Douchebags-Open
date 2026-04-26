@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import type { CourseResponse, PlayerResponse, RoundResponse, TournamentResponse } from "../lib/types";
+import { t } from "../lib/i18n";
 
 export function AdminTournamentsPage() {
   const { token } = useAuth();
@@ -122,7 +123,7 @@ export function AdminTournamentsPage() {
 
       {/* Tournament selector — full width at the top */}
       <section className="detail-panel" style={{ gridColumn: "1 / -1" }}>
-        <p className="eyebrow">Working event</p>
+        <p className="eyebrow">{t('tournaments.workingEyebrow')}</p>
         <label className="field-label">
           Select tournament to manage
           <select value={selectedTournamentId} onChange={(e) => setSelectedTournamentId(e.target.value)}>
@@ -136,8 +137,8 @@ export function AdminTournamentsPage() {
 
       {/* Left: Create new tournament */}
       <section className="detail-panel">
-        <p className="eyebrow">Event desk</p>
-        <h2>Create tournament</h2>
+        <p className="eyebrow">{t('tournaments.eyebrow')}</p>
+        <h2>{t('tournaments.createTitle')}</h2>
         <form className="stack-form" onSubmit={create}>
           <label className="field-label">
             Tournament name
@@ -148,15 +149,15 @@ export function AdminTournamentsPage() {
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
           {createError && <p className="form-error">{createError}</p>}
-          <button className="button-primary" type="submit">Create event</button>
+          <button className="button-primary" type="submit">{t('tournaments.create')}</button>
         </form>
       </section>
 
       {/* Right: Roster for selected tournament */}
       {selectedTournament ? (
         <section className="detail-panel">
-          <p className="eyebrow">Roster — {selectedTournament.name}</p>
-          <h2>Assign players</h2>
+          <p className="eyebrow">{t('tournaments.rosterEyebrow')} — {selectedTournament.name}</p>
+          <h2>{t('tournaments.rosterTitle')}</h2>
           <p className="eyebrow" style={{ marginTop: "0.5rem" }}>
             {selectedPlayers.length} of {players.length} players assigned
           </p>
@@ -178,13 +179,13 @@ export function AdminTournamentsPage() {
             ))}
           </div>
           {rosterError && <p className="form-error">{rosterError}</p>}
-          {rosterSuccess && <p className="form-success">Roster saved</p>}
-          <button className="button-primary" type="button" onClick={saveRoster}>Save roster</button>
+          {rosterSuccess && <p className="form-success">{t('tournaments.rosterSaved')}</p>}
+          <button className="button-primary" type="button" onClick={saveRoster}>{t('tournaments.saveRoster')}</button>
         </section>
       ) : (
         <section className="detail-panel">
-          <p className="eyebrow">Roster</p>
-          <h2>Assign players</h2>
+          <p className="eyebrow">{t('tournaments.rosterEyebrow')}</p>
+          <h2>{t('tournaments.rosterTitle')}</h2>
           <p style={{ color: "var(--text-muted, #8899aa)", margin: "0.5rem 0 0" }}>
             Select a tournament above to manage its roster.
           </p>

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import type { NavigationTournament, NotificationResponse, PlayerResponse } from "../lib/types";
+import { t } from "../lib/i18n";
 
 export function AdminNotificationsPage() {
   const { token } = useAuth();
@@ -45,25 +46,25 @@ export function AdminNotificationsPage() {
   return (
     <div className="admin-grid">
       <section className="detail-panel">
-        <p className="eyebrow">Message centre</p>
-        <h2>Push notification</h2>
+        <p className="eyebrow">{t('notifications.eyebrow')}</p>
+        <h2>{t('notifications.title')}</h2>
         <form className="stack-form" onSubmit={submit}>
           <input placeholder="Title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
           <textarea placeholder="Body" value={form.body} onChange={(event) => setForm({ ...form, body: event.target.value })} />
           <select value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value })}>
-            <option value="low">Low</option>
-            <option value="normal">Normal</option>
-            <option value="high">High</option>
+            <option value="low">{t('notifications.priorityLow')}</option>
+            <option value="normal">{t('notifications.priorityNormal')}</option>
+            <option value="high">{t('notifications.priorityHigh')}</option>
           </select>
           <select value={form.target_type} onChange={(event) => setForm({ ...form, target_type: event.target.value })}>
-            <option value="all_users">All users</option>
-            <option value="individual">One player</option>
-            <option value="round_roster">Round roster</option>
-            <option value="tournament_roster">Tournament roster</option>
+            <option value="all_users">{t('notifications.targetAll')}</option>
+            <option value="individual">{t('notifications.targetIndividual')}</option>
+            <option value="round_roster">{t('notifications.targetRound')}</option>
+            <option value="tournament_roster">{t('notifications.targetTournament')}</option>
           </select>
           {form.target_type === "individual" ? (
             <select value={form.user_id} onChange={(event) => setForm({ ...form, user_id: event.target.value })}>
-              <option value="">Select player</option>
+              <option value="">{t('notifications.selectPlayer')}</option>
               {players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
             </select>
           ) : null}

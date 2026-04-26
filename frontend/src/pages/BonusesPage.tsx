@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import type { BonusAward } from "../lib/types";
+import { t } from "../lib/i18n";
 
 export function BonusesPage() {
   const { token } = useAuth();
@@ -16,8 +17,8 @@ export function BonusesPage() {
     <div className="stack-layout">
       <section className="masthead-panel">
         <div>
-          <p className="eyebrow">Secret wins</p>
-          <h2>Unlocked bonus rules</h2>
+          <p className="eyebrow">{t('bonuses.eyebrow')}</p>
+          <h2>{t('bonuses.title')}</h2>
         </div>
       </section>
       <div className="list-stack">

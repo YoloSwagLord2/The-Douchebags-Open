@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import type { AchievementEvent } from "../lib/types";
+import { t } from "../lib/i18n";
 
 export function AchievementsPage() {
   const { token } = useAuth();
@@ -16,8 +17,8 @@ export function AchievementsPage() {
     <div className="stack-layout">
       <section className="masthead-panel">
         <div>
-          <p className="eyebrow">Exceptional moments</p>
-          <h2>Achievement history</h2>
+          <p className="eyebrow">{t('achievements.eyebrow')}</p>
+          <h2>{t('achievements.title')}</h2>
         </div>
       </section>
       <div className="list-stack">
