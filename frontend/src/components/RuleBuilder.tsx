@@ -20,6 +20,16 @@ const FIELDS: RuleField[] = [
 
 const OPERATORS: RuleOperator[] = ["eq", "ne", "gt", "gte", "lt", "lte", "in"];
 
+const OPERATOR_LABELS: Record<RuleOperator, string> = {
+  eq: "equal to",
+  ne: "not equal to",
+  gt: "greater than",
+  gte: "greater than or equal to",
+  lt: "less than",
+  lte: "less than or equal to",
+  in: "in list",
+};
+
 interface Props {
   value: RuleNode;
   onChange: (value: RuleNode) => void;
@@ -45,7 +55,7 @@ function PredicateEditor({ node, onChange }: { node: Extract<RuleNode, { field: 
       >
         {OPERATORS.map((operator) => (
           <option key={operator} value={operator}>
-            {operator}
+            {OPERATOR_LABELS[operator]}
           </option>
         ))}
       </select>

@@ -3,6 +3,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { RuleBuilder } from "../components/RuleBuilder";
 import type { BonusAnimationPreset, BonusRuleResponse, NavigationTournament, RuleNode } from "../lib/types";
+import { t } from "../lib/i18n";
 
 const initialRule: RuleNode = { op: "and", conditions: [{ field: "strokes", operator: "gte", value: 10 }] };
 
@@ -54,16 +55,16 @@ export function AdminBonusRulesPage() {
   return (
     <div className="admin-grid">
       <section className="detail-panel">
-        <p className="eyebrow">Hidden side games</p>
-        <h2>Create bonus rule</h2>
+        <p className="eyebrow">{t('bonusRules.eyebrow')}</p>
+        <h2>{t('bonusRules.createTitle')}</h2>
         <form className="stack-form" onSubmit={submit}>
           <input placeholder="Rule name" value={name} onChange={(event) => setName(event.target.value)} />
           <select value={scopeType} onChange={(event) => setScopeType(event.target.value as "round" | "tournament")}>
-            <option value="round">Round scoped</option>
-            <option value="tournament">Tournament scoped</option>
+            <option value="round">{t('bonusRules.scopeRound')}</option>
+            <option value="tournament">{t('bonusRules.scopeTournament')}</option>
           </select>
           <select value={scopeId} onChange={(event) => setScopeId(event.target.value)}>
-            <option value="">Select scope</option>
+            <option value="">{t('bonusRules.selectScope')}</option>
             {scopeType === "tournament"
               ? navigation.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
@@ -79,14 +80,14 @@ export function AdminBonusRulesPage() {
           <input type="number" value={points} onChange={(event) => setPoints(Number(event.target.value))} />
           <textarea placeholder="Winner message" value={message} onChange={(event) => setMessage(event.target.value)} />
           <select value={preset} onChange={(event) => setPreset(event.target.value as BonusAnimationPreset)}>
-            <option value="confetti">Confetti</option>
-            <option value="fireworks">Fireworks</option>
-            <option value="spotlight">Spotlight</option>
-            <option value="chaos">Chaos</option>
+            <option value="confetti">{t('bonusRules.animConfetti')}</option>
+            <option value="fireworks">{t('bonusRules.animFireworks')}</option>
+            <option value="spotlight">{t('bonusRules.animSpotlight')}</option>
+            <option value="chaos">{t('bonusRules.animChaos')}</option>
           </select>
           <input placeholder="Optional Lottie URL" value={lottieUrl} onChange={(event) => setLottieUrl(event.target.value)} />
           <RuleBuilder value={definition} onChange={setDefinition} />
-          <button className="button-primary" type="submit">Save bonus rule</button>
+          <button className="button-primary" type="submit">{t('bonusRules.save')}</button>
         </form>
       </section>
       <section className="detail-panel">

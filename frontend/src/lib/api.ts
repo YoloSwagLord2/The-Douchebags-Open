@@ -27,8 +27,10 @@ export class APIError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
-  const headers = new Headers(options.headers);
-  headers.set("Content-Type", headers.get("Content-Type") ?? "application/json");
+  const headers = new Headers(options.headers ?? {});
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
@@ -53,10 +55,10 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
 }
 
 export const api = {
-  login: (email: string, password: string) =>
+  login: (username: string, password: string) =>
     request<AuthResponse>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
     }),
   me: (token: string) => request<AuthResponse["user"]>("/auth/me", {}, token),
   navigation: (token: string) => request<NavigationTournament[]>("/catalog/navigation", {}, token),

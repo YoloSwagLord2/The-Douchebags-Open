@@ -18,6 +18,7 @@ def main() -> None:
 
         admin = User(
             name=settings.seed_admin_name,
+            username=settings.seed_admin_email.lower().split("@")[0],
             email=settings.seed_admin_email.lower(),
             password_hash=hash_password(settings.seed_admin_password),
             hcp=0,

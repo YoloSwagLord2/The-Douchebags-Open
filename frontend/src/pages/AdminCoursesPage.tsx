@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import type { CourseResponse } from "../lib/types";
+import { t } from "../lib/i18n";
 
 type HoleRow = { hole_number: number; par: number; stroke_index: number; distance: number };
 
@@ -18,23 +19,23 @@ function HoleEditor({
     <div className="hole-grid">
       {holes.map((hole, index) => (
         <div className="hole-grid__cell" key={hole.hole_number}>
-          <strong>Hole {hole.hole_number}</strong>
+          <strong>{t('courses.hole')} {hole.hole_number}</strong>
           <label className="field-label">
-            Par
+            {t('courses.holePar')}
             <input
               type="number" min={3} max={7} value={hole.par}
               onChange={(e) => setHoles((cur) => cur.map((h, i) => i === index ? { ...h, par: Number(e.target.value) } : h))}
             />
           </label>
           <label className="field-label">
-            Stroke index
+            {t('courses.holeStrokeIndex')}
             <input
               type="number" min={1} max={18} value={hole.stroke_index}
               onChange={(e) => setHoles((cur) => cur.map((h, i) => i === index ? { ...h, stroke_index: Number(e.target.value) } : h))}
             />
           </label>
           <label className="field-label">
-            Distance (m)
+            {t('courses.holeDistance')}
             <input
               type="number" min={1} value={hole.distance}
               onChange={(e) => setHoles((cur) => cur.map((h, i) => i === index ? { ...h, distance: Number(e.target.value) } : h))}
@@ -125,8 +126,8 @@ export function AdminCoursesPage() {
   return (
     <div className="admin-grid">
       <section className="detail-panel">
-        <p className="eyebrow">Course architect</p>
-        <h2>Create course</h2>
+        <p className="eyebrow">{t('courses.eyebrow')}</p>
+        <h2>{t('courses.createTitle')}</h2>
         <form className="stack-form" onSubmit={create}>
           <label className="field-label">
             Course name
@@ -142,13 +143,13 @@ export function AdminCoursesPage() {
           </label>
           <HoleEditor holes={holes} setHoles={setHoles} />
           {createError && <p className="form-error">{createError}</p>}
-          <button className="button-primary" type="submit">Save course</button>
+          <button className="button-primary" type="submit">{t('courses.save')}</button>
         </form>
       </section>
 
       <section className="detail-panel">
-        <p className="eyebrow">Library</p>
-        <h2>Configured courses</h2>
+        <p className="eyebrow">{t('courses.libraryEyebrow')}</p>
+        <h2>{t('courses.libraryTitle')}</h2>
         <div className="list-stack">
           {courses.map((course) => (
             <label className="selection-row" key={course.id}>
@@ -183,8 +184,8 @@ export function AdminCoursesPage() {
             </label>
             <HoleEditor holes={editHoles} setHoles={setEditHoles} />
             {editError && <p className="form-error">{editError}</p>}
-            {editSuccess && <p className="form-success">Course updated</p>}
-            <button className="button-secondary" type="submit">Update course</button>
+            {editSuccess && <p className="form-success">{t('courses.updated')}</p>}
+            <button className="button-secondary" type="submit">{t('courses.update')}</button>
           </form>
         </section>
       )}

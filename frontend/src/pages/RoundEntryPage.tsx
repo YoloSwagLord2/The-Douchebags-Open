@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { usePopups } from "../lib/popups";
 import type { HoleScorecardResponse, ScorecardResponse } from "../lib/types";
+import { t } from "../lib/i18n";
 
 export function RoundEntryPage() {
   const { token } = useAuth();
@@ -64,7 +65,7 @@ export function RoundEntryPage() {
       <section className="masthead-panel">
         <div>
           <p className="eyebrow">{scorecard?.round.tournament_name} • Round {scorecard?.round.round_number}</p>
-          <h2>Enter your scores</h2>
+          <h2>{t('score.enterScores')}</h2>
           <p className="hero-subtitle">
             Tap + or − to set your strokes, then press Save and continue after each hole.
           </p>
@@ -74,11 +75,18 @@ export function RoundEntryPage() {
 
       {currentHole ? (
         <section className="hole-stage">
+          <div className="hole-image-wrap">
+            <img
+              className="hole-image"
+              src="https://i.ibb.co/chnG1ZzQ/brudenell-hole-1.webp"
+              alt={`Hole ${currentHole.hole_number}`}
+            />
+          </div>
           <div className="hole-stage__header">
-            <h3>Hole {currentHole.hole_number}</h3>
+            <h3>{t('score.hole')} {currentHole.hole_number}</h3>
             <div className="hole-stage__meta">
-              <span>Par {currentHole.par}</span>
-              <span>SI {currentHole.stroke_index}</span>
+              <span>{t('score.par')} {currentHole.par}</span>
+              <span>{t('score.si')} {currentHole.stroke_index}</span>
               <span>{currentHole.distance}m</span>
             </div>
           </div>
@@ -100,32 +108,32 @@ export function RoundEntryPage() {
           {saveError && <p className="form-error">{saveError}</p>}
           <div className="hole-stage__footer">
             <button type="button" className="button-ghost" onClick={() => setCurrentIndex((value) => Math.max(0, value - 1))}>
-              Previous
+              {t('score.previous')}
             </button>
             <button type="button" className="button-primary" onClick={saveCurrentHole} disabled={saving}>
-              {saving ? "Saving…" : "Save and continue"}
+              {saving ? "Saving…" : t('score.saveAndContinue')}
             </button>
           </div>
         </section>
       ) : (
-        <div className="loading-state">Loading hole data…</div>
+        <div className="loading-state">{t('score.loading')}</div>
       )}
 
       <section className="totals-strip">
         <div>
-          <span>Gross</span>
+          <span>{t('score.gross')}</span>
           <strong>{totals?.gross_strokes ?? 0}</strong>
         </div>
         <div>
-          <span>Official</span>
+          <span>{t('score.official')}</span>
           <strong>{totals?.official_stableford ?? 0}</strong>
         </div>
         <div>
-          <span>Bonus</span>
+          <span>{t('score.bonus')}</span>
           <strong>{totals?.bonus_points ?? 0}</strong>
         </div>
         <div>
-          <span>Adj.</span>
+          <span>{t('score.adj')}</span>
           <strong>{totals?.bonus_adjusted_stableford ?? 0}</strong>
         </div>
       </section>

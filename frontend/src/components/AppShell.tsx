@@ -6,6 +6,8 @@ import { api } from "../lib/api";
 import type { NavigationTournament } from "../lib/types";
 import { Modal } from "./Modal";
 import { LottieOrPreset } from "./LottieOrPreset";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { t } from "../lib/i18n";
 
 export function AppShell() {
   const { user, token, logout } = useAuth();
@@ -26,27 +28,29 @@ export function AppShell() {
       {user?.role === "admin" && (
         <header className="top-hero">
           <div className="top-hero__copy">
-            <p className="eyebrow">The Douchebags Open</p>
-            <h1>Tournament Control</h1>
+            <p className="eyebrow">{t('app.eyebrow')}</p>
+            <h1>{t('app.title')}</h1>
           </div>
           <div className="top-hero__actions">
             <Link className="button-primary" to="/leaderboard">
-              Open board
+              {t('nav.board')}
             </Link>
             {latestRound ? (
               <Link className="button-secondary" to={`/round/${latestRound.id}/entry`}>
-                Enter scores
+                {t('score.enterScores')}
               </Link>
             ) : null}
+            <LanguageSwitcher />
             <button className="button-ghost" onClick={logout} type="button">
-              Sign out
+              {t('app.signOut')}
             </button>
           </div>
         </header>
       )}
       {user?.role !== "admin" && (
         <div className="player-bar">
-          <button className="button-ghost" onClick={logout} type="button">Sign out</button>
+          <LanguageSwitcher />
+          <button className="button-ghost" onClick={logout} type="button">{t('app.signOut')}</button>
         </div>
       )}
 
@@ -57,21 +61,21 @@ export function AppShell() {
       <nav className="bottom-nav">
         {user?.role === "admin" ? (
           <>
-            <NavLink to="/admin/players">Players</NavLink>
-            <NavLink to="/admin/courses">Courses</NavLink>
-            <NavLink to="/admin/tournaments">Events</NavLink>
-            <NavLink to="/leaderboard">Board</NavLink>
-            <NavLink to="/admin/bonus-rules">Rules</NavLink>
-            <NavLink to="/admin/notifications">Inbox</NavLink>
+            <NavLink to="/admin/players">{t('nav.players')}</NavLink>
+            <NavLink to="/admin/courses">{t('nav.courses')}</NavLink>
+            <NavLink to="/admin/tournaments">{t('nav.events')}</NavLink>
+            <NavLink to="/leaderboard">{t('nav.board')}</NavLink>
+            <NavLink to="/admin/bonus-rules">{t('nav.rules')}</NavLink>
+            <NavLink to="/admin/notifications">{t('nav.inbox')}</NavLink>
           </>
         ) : (
           <>
-            <NavLink to="/leaderboard">Board</NavLink>
-            <NavLink to="/score">Score</NavLink>
-            <NavLink to="/me/bonuses">Bonuses</NavLink>
-            <NavLink to="/me/achievements">Awards</NavLink>
+            <NavLink to="/leaderboard">{t('nav.board')}</NavLink>
+            <NavLink to="/score">{t('nav.scores')}</NavLink>
+            <NavLink to="/me/bonuses">{t('nav.bonuses')}</NavLink>
+            <NavLink to="/me/achievements">{t('nav.achievements')}</NavLink>
             <NavLink to="/notifications">
-              Inbox
+              {t('nav.inbox')}
               {unreadCount ? <span className="badge">{unreadCount}</span> : null}
             </NavLink>
           </>

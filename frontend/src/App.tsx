@@ -10,6 +10,7 @@ import { AdminNotificationsPage } from "./pages/AdminNotificationsPage";
 import { AdminPlayersPage } from "./pages/AdminPlayersPage";
 import { AdminRoundsPage } from "./pages/AdminRoundsPage";
 import { AdminTournamentsPage } from "./pages/AdminTournamentsPage";
+import { BonusAnimationDemoPage } from "./pages/BonusAnimationDemoPage";
 import { BonusesPage } from "./pages/BonusesPage";
 import { HomePage } from "./pages/HomePage";
 import { LeaderboardIndexPage } from "./pages/LeaderboardIndexPage";
@@ -36,6 +37,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/bonus-demo" element={<BonusAnimationDemoPage />} />
       <Route
         path="/"
         element={

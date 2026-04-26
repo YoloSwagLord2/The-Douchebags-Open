@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import type { CourseResponse, RoundResponse, TournamentResponse } from "../lib/types";
+import { t } from "../lib/i18n";
 
 export function AdminRoundsPage() {
   const { token } = useAuth();
@@ -36,32 +37,32 @@ export function AdminRoundsPage() {
   return (
     <div className="admin-grid">
       <section className="detail-panel">
-        <p className="eyebrow">Round factory</p>
-        <h2>Create round</h2>
+        <p className="eyebrow">{t('rounds.eyebrow')}</p>
+        <h2>{t('rounds.createTitle')}</h2>
         <form className="stack-form" onSubmit={submit}>
           <select value={form.tournament_id} onChange={(event) => setForm({ ...form, tournament_id: event.target.value })}>
-            <option value="">Tournament</option>
+            <option value="">{t('rounds.selectTournament')}</option>
             {tournaments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
           <select value={form.course_id} onChange={(event) => setForm({ ...form, course_id: event.target.value })}>
-            <option value="">Course</option>
+            <option value="">{t('rounds.selectCourse')}</option>
             {courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
           <input type="number" value={form.round_number} onChange={(event) => setForm({ ...form, round_number: Number(event.target.value) })} />
           <input type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} />
-          <button className="button-primary" type="submit">Create round</button>
+          <button className="button-primary" type="submit">{t('rounds.create')}</button>
         </form>
       </section>
       <section className="detail-panel">
-        <p className="eyebrow">Control</p>
-        <h2>Rounds</h2>
+        <p className="eyebrow">{t('rounds.controlEyebrow')}</p>
+        <h2>{t('rounds.title')}</h2>
         <div className="list-stack">
           {rounds.map((round) => (
             <article className="detail-panel detail-panel--nested" key={round.id}>
-              <strong>Round {round.round_number}</strong>
+              <strong>{t('rounds.round')} {round.round_number}</strong>
               <p>{round.date}</p>
               <button className="button-ghost" onClick={() => token && api.lockRound(round.id, token).then(load)} type="button">
-                {round.status === "locked" ? "Locked" : "Lock round"}
+                {round.status === "locked" ? t('rounds.locked') : t('rounds.lock')}
               </button>
             </article>
           ))}

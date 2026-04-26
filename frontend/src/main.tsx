@@ -4,7 +4,11 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./lib/auth";
 import { PopupProvider } from "./lib/popups";
+import { initLanguage } from "./lib/i18n";
 import "./styles.css";
+
+// Initialize language on app startup
+initLanguage();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

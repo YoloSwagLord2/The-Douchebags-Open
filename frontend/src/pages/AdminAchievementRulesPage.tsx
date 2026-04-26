@@ -3,6 +3,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { RuleBuilder } from "../components/RuleBuilder";
 import type { AchievementIconPreset, AchievementRuleResponse, NavigationTournament, RuleNode } from "../lib/types";
+import { t } from "../lib/i18n";
 
 const initialRule: RuleNode = { op: "and", conditions: [{ field: "round_stableford", operator: "gte", value: 4 }] };
 
@@ -52,18 +53,18 @@ export function AdminAchievementRulesPage() {
   return (
     <div className="admin-grid">
       <section className="detail-panel">
-        <p className="eyebrow">Exceptional events</p>
-        <h2>Create achievement rule</h2>
+        <p className="eyebrow">{t('achievementRules.eyebrow')}</p>
+        <h2>{t('achievementRules.createTitle')}</h2>
         <form className="stack-form" onSubmit={submit}>
           <input placeholder="Rule name" value={name} onChange={(event) => setName(event.target.value)} />
           <input placeholder="Popup title" value={title} onChange={(event) => setTitle(event.target.value)} />
           <textarea placeholder="Message template" value={message} onChange={(event) => setMessage(event.target.value)} />
           <select value={scopeType} onChange={(event) => setScopeType(event.target.value as "round" | "tournament")}>
-            <option value="round">Round scoped</option>
-            <option value="tournament">Tournament scoped</option>
+            <option value="round">{t('achievementRules.scopeRound')}</option>
+            <option value="tournament">{t('achievementRules.scopeTournament')}</option>
           </select>
           <select value={scopeId} onChange={(event) => setScopeId(event.target.value)}>
-            <option value="">Select scope</option>
+            <option value="">{t('achievementRules.selectScope')}</option>
             {scopeType === "tournament"
               ? navigation.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
@@ -77,13 +78,13 @@ export function AdminAchievementRulesPage() {
                 )}
           </select>
           <select value={icon} onChange={(event) => setIcon(event.target.value as AchievementIconPreset)}>
-            <option value="star">Star</option>
-            <option value="ace">Ace</option>
-            <option value="flame">Flame</option>
-            <option value="trophy">Trophy</option>
+            <option value="star">{t('achievementRules.iconStar')}</option>
+            <option value="ace">{t('achievementRules.iconAce')}</option>
+            <option value="flame">{t('achievementRules.iconFlame')}</option>
+            <option value="trophy">{t('achievementRules.iconTrophy')}</option>
           </select>
           <RuleBuilder value={definition} onChange={setDefinition} />
-          <button className="button-primary" type="submit">Save achievement rule</button>
+          <button className="button-primary" type="submit">{t('achievementRules.save')}</button>
         </form>
       </section>
       <section className="detail-panel">

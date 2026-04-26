@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import type { NotificationResponse } from "../lib/types";
+import { t } from "../lib/i18n";
 
 export function NotificationsPage() {
   const { token } = useAuth();
@@ -27,11 +28,11 @@ export function NotificationsPage() {
     <div className="stack-layout">
       <section className="masthead-panel">
         <div>
-          <p className="eyebrow">Notification centre</p>
-          <h2>Messages and event alerts</h2>
+          <p className="eyebrow">{t('notifications.centreEyebrow')}</p>
+          <h2>{t('notifications.centreTitle')}</h2>
         </div>
         <button className="button-ghost" onClick={() => token && api.markAllNotificationsRead(token).then(refresh)} type="button">
-          Mark all read
+          {t('notifications.markAllRead', 'Mark all read')}
         </button>
       </section>
       <div className="list-stack">

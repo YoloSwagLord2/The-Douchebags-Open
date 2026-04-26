@@ -72,11 +72,15 @@ def list_players(_: User = Depends(require_admin), db: Session = Depends(get_db)
 
 @router.post("/players", response_model=PlayerResponse)
 def create_player(payload: PlayerCreate, _: User = Depends(require_admin), db: Session = Depends(get_db)) -> PlayerResponse:
-    existing = db.scalar(select(User).where(User.email == payload.email.lower()))
-    if existing:
+    existing_email = db.scalar(select(User).where(User.email == payload.email.lower()))
+    if existing_email:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists")
+    existing_username = db.scalar(select(User).where(User.username == payload.username.lower()))
+    if existing_username:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists")
     user = User(
         name=payload.name,
+        username=payload.username.lower(),
         email=payload.email.lower(),
         password_hash=hash_password(payload.password),
         hcp=payload.hcp,
