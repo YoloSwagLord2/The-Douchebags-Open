@@ -75,6 +75,13 @@ export function RoundEntryPage() {
 
       {currentHole ? (
         <section className="hole-stage">
+          <div className="hole-image-wrap">
+            <img
+              className="hole-image"
+              src="https://i.ibb.co/chnG1ZzQ/brudenell-hole-1.webp"
+              alt={`Hole ${currentHole.hole_number}`}
+            />
+          </div>
           <div className="hole-stage__header">
             <h3>{t('score.hole')} {currentHole.hole_number}</h3>
             <div className="hole-stage__meta">

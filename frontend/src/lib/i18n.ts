@@ -181,15 +181,15 @@ const translations = {
     'auth.username': 'Gebruikersnaam',
     'auth.usernamePlaceholder': 'Voer je gebruikersnaam in',
     'auth.password': 'Wachtwoord',
-    'auth.login': 'Voer de clubhouse in',
+    'auth.login': 'Login',
     'auth.loginHeader': 'LOKAAL TOERNOOI BEHEER',
-    'auth.subtitle': 'Mobiel scoren, live ranglijsten, geheime zijspelen en een correct evenementdagbeheercenter.',
+    'auth.subtitle': 'Alles wat je nodig hebt voor The Douchebags Open!',
 
     // App shell
     'app.eyebrow': 'The Douchebags Open',
     'app.title': 'Toernooi Beheer',
     'app.signOut': 'Uitloggen',
-    'app.loading': 'Toernooideck laden…',
+    'app.loading': 'Toernooioverzicht laden…',
 
     // Navigation
     'nav.players': 'Spelers',
@@ -291,7 +291,7 @@ const translations = {
     'leaderboard.gross': 'Bruto',
 
     // Bonuses
-    'bonuses.eyebrow': 'Geheime winsten',
+    'bonuses.eyebrow': 'Gewonnen bonuspunten',
     'bonuses.title': 'Ontgrendelde bonusregels',
 
     // Achievements

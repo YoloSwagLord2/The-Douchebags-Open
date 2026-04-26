@@ -25,7 +25,6 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
-      <LanguageSwitcher />
       {user?.role === "admin" && (
         <header className="top-hero">
           <div className="top-hero__copy">
@@ -41,6 +40,7 @@ export function AppShell() {
                 {t('score.enterScores')}
               </Link>
             ) : null}
+            <LanguageSwitcher />
             <button className="button-ghost" onClick={logout} type="button">
               {t('app.signOut')}
             </button>
@@ -49,6 +49,7 @@ export function AppShell() {
       )}
       {user?.role !== "admin" && (
         <div className="player-bar">
+          <LanguageSwitcher />
           <button className="button-ghost" onClick={logout} type="button">{t('app.signOut')}</button>
         </div>
       )}

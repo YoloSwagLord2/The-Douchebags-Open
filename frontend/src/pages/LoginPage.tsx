@@ -40,7 +40,7 @@ export function LoginPage() {
 
   return (
     <div className="login-shell">
-      <LanguageSwitcher />
+      <LanguageSwitcher className="language-switcher--floating" />
       <div className="login-panel">
         <p className="eyebrow">{t('auth.loginHeader')}</p>
         <h1>The Douchebags Open</h1>
