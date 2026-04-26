@@ -15,6 +15,7 @@ export function RoundEntryPage() {
   const [draftStroke, setDraftStroke] = useState<number>(4);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isHoleImageOpen, setIsHoleImageOpen] = useState(false);
 
   useEffect(() => {
     if (!token || !roundId) return;
@@ -59,10 +60,12 @@ export function RoundEntryPage() {
   const currentHole = hole as HoleScorecardResponse | undefined;
   const progress = scorecard ? `${currentIndex + 1}/${scorecard.holes.length}` : "0/0";
   const totals = scorecard?.totals;
+  const hasPreviousHole = currentIndex > 0;
+  const hasNextHole = scorecard ? currentIndex < scorecard.holes.length - 1 : false;
 
   return (
-    <div className="stack-layout">
-      <section className="masthead-panel">
+    <div className="stack-layout score-entry-layout">
+      <section className="masthead-panel score-entry-masthead">
         <div>
           <p className="eyebrow">{scorecard?.round.tournament_name} • Round {scorecard?.round.round_number}</p>
           <h2>{t('score.enterScores')}</h2>
@@ -75,13 +78,18 @@ export function RoundEntryPage() {
 
       {currentHole ? (
         <section className="hole-stage">
-          <div className="hole-image-wrap">
+          <button
+            className="hole-image-wrap"
+            type="button"
+            onClick={() => setIsHoleImageOpen(true)}
+            aria-label={`Open full image for hole ${currentHole.hole_number}`}
+          >
             <img
               className="hole-image"
               src="https://i.ibb.co/chnG1ZzQ/brudenell-hole-1.webp"
               alt={`Hole ${currentHole.hole_number}`}
             />
-          </div>
+          </button>
           <div className="hole-stage__header">
             <h3>{t('score.hole')} {currentHole.hole_number}</h3>
             <div className="hole-stage__meta">
@@ -107,9 +115,23 @@ export function RoundEntryPage() {
           </div>
           {saveError && <p className="form-error">{saveError}</p>}
           <div className="hole-stage__footer">
-            <button type="button" className="button-ghost" onClick={() => setCurrentIndex((value) => Math.max(0, value - 1))}>
+            <button
+              type="button"
+              className="button-ghost"
+              onClick={() => setCurrentIndex((value) => Math.max(0, value - 1))}
+              disabled={!hasPreviousHole}
+            >
               {t('score.previous')}
             </button>
+            {hasNextHole ? (
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={() => setCurrentIndex((value) => Math.min(value + 1, (scorecard?.holes.length ?? 1) - 1))}
+              >
+                {t('score.next')}
+              </button>
+            ) : null}
             <button type="button" className="button-primary" onClick={saveCurrentHole} disabled={saving}>
               {saving ? "Saving…" : t('score.saveAndContinue')}
             </button>
@@ -118,6 +140,24 @@ export function RoundEntryPage() {
       ) : (
         <div className="loading-state">{t('score.loading')}</div>
       )}
+
+      {currentHole && isHoleImageOpen ? (
+        <div className="hole-image-viewer" role="dialog" aria-modal="true" aria-label={`Hole ${currentHole.hole_number} image`}>
+          <button
+            className="hole-image-viewer__close"
+            type="button"
+            onClick={() => setIsHoleImageOpen(false)}
+            aria-label="Close hole image"
+          >
+            X
+          </button>
+          <img
+            className="hole-image-viewer__image"
+            src="https://i.ibb.co/chnG1ZzQ/brudenell-hole-1.webp"
+            alt={`Hole ${currentHole.hole_number}`}
+          />
+        </div>
+      ) : null}
 
       <section className="totals-strip">
         <div>

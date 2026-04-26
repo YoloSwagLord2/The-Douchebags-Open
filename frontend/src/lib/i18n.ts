@@ -99,6 +99,7 @@ const translations = {
     'score.bonus': 'Bonus',
     'score.adj': 'Adj.',
     'score.previous': 'Previous',
+    'score.next': 'Next',
     'score.saveAndContinue': 'Save and continue',
     'score.loading': 'Loading hole data…',
 
@@ -273,6 +274,7 @@ const translations = {
     'score.bonus': 'Bonus',
     'score.adj': 'Aangepast',
     'score.previous': 'Vorige',
+    'score.next': 'Volgende',
     'score.saveAndContinue': 'Opslaan en doorgaan',
     'score.loading': 'Holegegevens laden…',
 

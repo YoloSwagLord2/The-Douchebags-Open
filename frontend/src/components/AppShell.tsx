@@ -58,7 +58,7 @@ export function AppShell() {
         <Outlet context={{ navigation }} />
       </main>
 
-      <nav className="bottom-nav">
+      <nav className={`bottom-nav bottom-nav--${user?.role === "admin" ? "admin" : "player"}`}>
         {user?.role === "admin" ? (
           <>
             <NavLink to="/admin/players">{t('nav.players')}</NavLink>
