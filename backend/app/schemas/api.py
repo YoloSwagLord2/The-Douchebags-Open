@@ -50,7 +50,7 @@ class AuthResponse(APIModel):
 class HoleInput(BaseModel):
     hole_number: int = Field(ge=1, le=36)
     par: int = Field(ge=3, le=7)
-    stroke_index: int = Field(ge=1, le=36)
+    stroke_index: int = Field(ge=0, le=19)
     distance: int = Field(ge=1)
 
 

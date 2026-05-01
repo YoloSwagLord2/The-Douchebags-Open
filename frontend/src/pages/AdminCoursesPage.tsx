@@ -13,6 +13,9 @@ type HoleRow = {
   image_url?: string | null;
 };
 
+const MIN_STROKE_INDEX = 0;
+const MAX_STROKE_INDEX = 19;
+
 const blankHole = (index: number): HoleRow => ({ hole_number: index + 1, par: 4, stroke_index: index + 1, distance: 320 });
 
 const normalizeHoleRows = (rows: HoleRow[], count: number): HoleRow[] =>
@@ -21,7 +24,7 @@ const normalizeHoleRows = (rows: HoleRow[], count: number): HoleRow[] =>
     return {
       ...(existing ?? blankHole(index)),
       hole_number: index + 1,
-      stroke_index: Math.min(existing?.stroke_index ?? index + 1, count),
+      stroke_index: existing?.stroke_index ?? index + 1,
     };
   });
 
@@ -132,7 +135,7 @@ function HoleEditor({
           <label className="field-label">
             {t('courses.holeStrokeIndex')}
             <input
-              type="number" min={1} max={holes.length} value={hole.stroke_index}
+              type="number" min={MIN_STROKE_INDEX} max={MAX_STROKE_INDEX} value={hole.stroke_index}
               onChange={(e) => setHoles((cur) => cur.map((h, i) => i === index ? { ...h, stroke_index: Number(e.target.value) } : h))}
             />
           </label>
