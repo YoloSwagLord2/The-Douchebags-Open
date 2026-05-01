@@ -36,6 +36,8 @@ Unraid's current documentation says Docker Compose is not natively supported, so
 
 The container serves the React SPA at `/` and the JSON API at `/api/*`. Uploaded media is served at `/media/*`.
 
+If the app logs show a migration failure against `localhost:5432`, the app container is missing `DATABASE_URL` or it points at itself. Set it to the Postgres container name, for example `postgresql+psycopg://douchebags:change-me@postgres:5432/douchebags_open`.
+
 ## Networking
 
 Both containers must share a user-defined Docker network so the `app` container can resolve `postgres` by name. On Unraid, create a custom network (e.g. `douchebags`) and attach both containers to it.

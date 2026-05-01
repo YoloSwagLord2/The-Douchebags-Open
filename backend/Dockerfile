@@ -12,7 +12,8 @@ FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/postgres
 
 WORKDIR /app
 
@@ -27,7 +28,10 @@ COPY backend/alembic /app/alembic
 RUN pip install --upgrade pip && pip install .
 
 COPY --from=frontend-build /frontend/dist /app/static
+COPY backend/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 8000
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
