@@ -24,7 +24,8 @@ Unraid's current documentation says Docker Compose is not natively supported, so
 - External port: `8000` (or whatever you want to expose)
 - Internal port: `8000`
 - Environment:
-  - `DATABASE_URL=postgresql+psycopg://<user>:<pass>@postgres:5432/<db>`
+  - `DATABASE_URL=postgresql+psycopg://<user>:<pass>@postgres:5432/<db>` (recommended)
+  - Or set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` on the app container too; the image already defaults `POSTGRES_HOST=postgres`.
   - `JWT_SECRET`
   - `JWT_EXPIRES_MINUTES`
   - `SEED_ADMIN_NAME`
@@ -40,7 +41,7 @@ The container serves the React SPA at `/` and the JSON API at `/api/*`. Uploaded
 
 If the app logs show a migration failure against `localhost:5432`, the app container is missing `DATABASE_URL` or it points at itself. Set it to the Postgres container name, for example `postgresql+psycopg://douchebags:change-me@postgres:5432/douchebags_open`.
 
-If the app logs show `password authentication failed for user "postgres"`, it is still using the image fallback credentials. Add or fix the app container's `DATABASE_URL` so it matches your Postgres container.
+If the app logs show `password authentication failed for user "postgres"`, it is still using fallback credentials. Add or fix the app container's `DATABASE_URL`, or add the same `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` values that you set on the Postgres container.
 
 ## Networking
 
