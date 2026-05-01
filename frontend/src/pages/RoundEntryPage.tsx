@@ -78,18 +78,20 @@ export function RoundEntryPage() {
 
       {currentHole ? (
         <section className="hole-stage">
-          <button
-            className="hole-image-wrap"
-            type="button"
-            onClick={() => setIsHoleImageOpen(true)}
-            aria-label={`Open full image for hole ${currentHole.hole_number}`}
-          >
-            <img
-              className="hole-image"
-              src="https://i.ibb.co/chnG1ZzQ/brudenell-hole-1.webp"
-              alt={`Hole ${currentHole.hole_number}`}
-            />
-          </button>
+          {currentHole.image_url ? (
+            <button
+              className="hole-image-wrap"
+              type="button"
+              onClick={() => setIsHoleImageOpen(true)}
+              aria-label={`Open full image for hole ${currentHole.hole_number}`}
+            >
+              <img
+                className="hole-image"
+                src={currentHole.image_url}
+                alt={`Hole ${currentHole.hole_number}`}
+              />
+            </button>
+          ) : null}
           <div className="hole-stage__header">
             <h3>{t('score.hole')} {currentHole.hole_number}</h3>
             <div className="hole-stage__meta">
@@ -141,7 +143,7 @@ export function RoundEntryPage() {
         <div className="loading-state">{t('score.loading')}</div>
       )}
 
-      {currentHole && isHoleImageOpen ? (
+      {currentHole && isHoleImageOpen && currentHole.image_url ? (
         <div className="hole-image-viewer" role="dialog" aria-modal="true" aria-label={`Hole ${currentHole.hole_number} image`}>
           <button
             className="hole-image-viewer__close"
@@ -149,11 +151,11 @@ export function RoundEntryPage() {
             onClick={() => setIsHoleImageOpen(false)}
             aria-label="Close hole image"
           >
-            X
+            ×
           </button>
           <img
             className="hole-image-viewer__image"
-            src="https://i.ibb.co/chnG1ZzQ/brudenell-hole-1.webp"
+            src={currentHole.image_url}
             alt={`Hole ${currentHole.hole_number}`}
           />
         </div>

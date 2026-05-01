@@ -64,6 +64,11 @@ const translations = {
     'courses.holePar': 'Par',
     'courses.holeStrokeIndex': 'Stroke index',
     'courses.holeDistance': 'Distance (m)',
+    'courses.holeImageNone': 'No image yet',
+    'courses.holeImageUpload': 'Upload image',
+    'courses.holeImageReplace': 'Replace image',
+    'courses.holeImageRemove': 'Remove',
+    'courses.holeImageSaveFirst': 'Save the course first to upload images',
 
     // Tournaments / Events
     'tournaments.eyebrow': 'Event desk',
@@ -241,6 +246,11 @@ const translations = {
     'courses.holePar': 'Par',
     'courses.holeStrokeIndex': 'Slagindex',
     'courses.holeDistance': 'Afstand (m)',
+    'courses.holeImageNone': 'Nog geen afbeelding',
+    'courses.holeImageUpload': 'Afbeelding uploaden',
+    'courses.holeImageReplace': 'Afbeelding vervangen',
+    'courses.holeImageRemove': 'Verwijderen',
+    'courses.holeImageSaveFirst': 'Sla de baan eerst op om afbeeldingen te uploaden',
 
     // Tournaments / Events
     'tournaments.eyebrow': 'Event beheer',

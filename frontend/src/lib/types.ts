@@ -79,6 +79,7 @@ export interface HoleScorecardResponse {
   net_strokes?: number | null;
   stableford_points?: number | null;
   handicap_strokes: number;
+  image_url?: string | null;
 }
 
 export interface BonusUnlockResponse {
@@ -194,6 +195,7 @@ export interface CourseResponse {
     par: number;
     stroke_index: number;
     distance: number;
+    image_url?: string | null;
   }>;
 }
 

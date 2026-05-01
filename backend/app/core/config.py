@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     seed_admin_email: str = "admin@example.com"
     seed_admin_password: str = "change-me-now"
     media_root: Path = Path("uploads")
+    static_root: Path = Path("static")
     api_prefix: str = "/api"
 
     model_config = SettingsConfigDict(

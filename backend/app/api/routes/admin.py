@@ -51,7 +51,8 @@ from app.schemas.api import (
     TournamentUpdate,
 )
 from app.services.auth import hash_password
-from app.services.media import store_player_photo
+from app.core.config import get_settings
+from app.services.media import store_hole_image, store_player_photo
 from app.services.notifications import create_notification
 from app.services.rules import validate_rule_definition
 from app.services.scoring import (
@@ -194,12 +195,54 @@ def replace_holes(
     course = db.scalar(select(Course).options(joinedload(Course.holes)).where(Course.id == course_id))
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    existing_images = {hole.hole_number: hole.image_path for hole in course.holes}
     course.holes.clear()
     for hole_payload in holes:
-        course.holes.append(Hole(**hole_payload.model_dump()))
+        new_hole = Hole(**hole_payload.model_dump())
+        new_hole.image_path = existing_images.get(new_hole.hole_number)
+        course.holes.append(new_hole)
     db.commit()
     db.refresh(course)
     return course
+
+
+def _course_with_holes_or_404(db: Session, course_id: uuid.UUID) -> Course:
+    course = db.scalar(select(Course).options(joinedload(Course.holes)).where(Course.id == course_id))
+    if not course:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    return course
+
+
+@router.post("/holes/{hole_id}/image", response_model=CourseResponse)
+async def upload_hole_image(
+    hole_id: uuid.UUID,
+    file: UploadFile = File(...),
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> CourseResponse:
+    hole = db.scalar(select(Hole).where(Hole.id == hole_id))
+    if not hole:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hole not found")
+    hole.image_path = await store_hole_image(hole.id, file)
+    db.commit()
+    return _course_with_holes_or_404(db, hole.course_id)
+
+
+@router.delete("/holes/{hole_id}/image", response_model=CourseResponse)
+def delete_hole_image(hole_id: uuid.UUID, _: User = Depends(require_admin), db: Session = Depends(get_db)) -> CourseResponse:
+    hole = db.scalar(select(Hole).where(Hole.id == hole_id))
+    if not hole:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hole not found")
+    if hole.image_path:
+        media_path = get_settings().media_root / hole.image_path
+        if media_path.exists():
+            try:
+                media_path.unlink()
+            except OSError:
+                pass
+    hole.image_path = None
+    db.commit()
+    return _course_with_holes_or_404(db, hole.course_id)
 
 
 @router.get("/tournaments", response_model=list[TournamentResponse])

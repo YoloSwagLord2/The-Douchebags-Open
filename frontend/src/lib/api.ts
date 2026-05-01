@@ -106,6 +106,21 @@ export const api = {
     request<CourseResponse>(`/admin/courses/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
   replaceCourseHoles: (id: string, holes: Array<Record<string, unknown>>, token: string) =>
     request<CourseResponse>(`/admin/courses/${id}/holes`, { method: "PUT", body: JSON.stringify(holes) }, token),
+  uploadHoleImage: async (holeId: string, file: File, token: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await fetch(`${API_BASE}/admin/holes/${holeId}/image`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!response.ok) {
+      throw new APIError(response.status, "Hole image upload failed");
+    }
+    return (await response.json()) as CourseResponse;
+  },
+  deleteHoleImage: (holeId: string, token: string) =>
+    request<CourseResponse>(`/admin/holes/${holeId}/image`, { method: "DELETE" }, token),
   tournamentOverview: (id: string, token: string) =>
     request<TournamentOverviewResponse>(`/leaderboards/tournaments/${id}/overview`, {}, token),
   adminTournaments: (token: string) => request<TournamentResponse[]>("/admin/tournaments", {}, token),

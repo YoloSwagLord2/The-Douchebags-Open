@@ -29,8 +29,9 @@ export function AppShell() {
       {user?.role === "admin" && (
         <header className="top-hero">
           <div className="top-hero__copy">
-            <p className="eyebrow">{t('app.eyebrow')}</p>
-            <h1>{t('app.title')}</h1>
+            <img className="brand-logo brand-logo--shell" src="/logo.svg" alt="The Douchebags Open" />
+            <p className="eyebrow">{t('app.title')}</p>
+            <h1 className="visually-hidden">The Douchebags Open · {t('app.title')}</h1>
           </div>
           <div className="top-hero__actions">
             <Link className="button-primary" to="/leaderboard">
@@ -53,6 +54,7 @@ export function AppShell() {
       )}
       {user?.role !== "admin" && (
         <div className="player-bar">
+          <img className="brand-logo brand-logo--bar" src="/logo.svg" alt={t('app.title')} />
           <div className="app-controls">
             <LanguageSwitcher />
             <ThemeSwitcher />

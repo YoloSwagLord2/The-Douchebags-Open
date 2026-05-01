@@ -1,19 +1,111 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import type { CourseResponse } from "../lib/types";
 import { t } from "../lib/i18n";
 
-type HoleRow = { hole_number: number; par: number; stroke_index: number; distance: number };
+type HoleRow = {
+  id?: string;
+  hole_number: number;
+  par: number;
+  stroke_index: number;
+  distance: number;
+  image_url?: string | null;
+};
 
 const blankHole = (index: number): HoleRow => ({ hole_number: index + 1, par: 4, stroke_index: index + 1, distance: 320 });
+
+function HoleImageField({
+  hole,
+  token,
+  onCourseUpdate,
+}: {
+  hole: HoleRow;
+  token: string;
+  onCourseUpdate: (course: CourseResponse) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!hole.id) {
+    return <p className="hole-image-hint">{t('courses.holeImageSaveFirst')}</p>;
+  }
+
+  const upload = async (file: File) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await api.uploadHoleImage(hole.id!, file, token);
+      onCourseUpdate(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await api.deleteHoleImage(hole.id!, token);
+      onCourseUpdate(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Remove failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="hole-image-field">
+      {hole.image_url ? (
+        <img className="hole-image-field__thumb" src={hole.image_url} alt={`Hole ${hole.hole_number}`} />
+      ) : (
+        <div className="hole-image-field__empty">{t('courses.holeImageNone')}</div>
+      )}
+      <div className="hole-image-field__actions">
+        <button
+          type="button"
+          className="button-secondary"
+          onClick={() => inputRef.current?.click()}
+          disabled={busy}
+        >
+          {busy ? "…" : hole.image_url ? t('courses.holeImageReplace') : t('courses.holeImageUpload')}
+        </button>
+        {hole.image_url && (
+          <button type="button" className="button-ghost" onClick={remove} disabled={busy}>
+            {t('courses.holeImageRemove')}
+          </button>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) upload(file);
+        }}
+      />
+      {error && <p className="form-error">{error}</p>}
+    </div>
+  );
+}
 
 function HoleEditor({
   holes,
   setHoles,
+  token,
+  onCourseUpdate,
 }: {
   holes: HoleRow[];
   setHoles: React.Dispatch<React.SetStateAction<HoleRow[]>>;
+  token?: string | null;
+  onCourseUpdate?: (course: CourseResponse) => void;
 }) {
   return (
     <div className="hole-grid">
@@ -41,6 +133,9 @@ function HoleEditor({
               onChange={(e) => setHoles((cur) => cur.map((h, i) => i === index ? { ...h, distance: Number(e.target.value) } : h))}
             />
           </label>
+          {token && onCourseUpdate && (
+            <HoleImageField hole={hole} token={token} onCourseUpdate={onCourseUpdate} />
+          )}
         </div>
       ))}
     </div>
@@ -85,7 +180,14 @@ export function AdminCoursesPage() {
     setEditHoles(
       [...course.holes]
         .sort((a, b) => a.hole_number - b.hole_number)
-        .map((h) => ({ hole_number: h.hole_number, par: h.par, stroke_index: h.stroke_index, distance: h.distance })),
+        .map((h) => ({
+          id: h.id,
+          hole_number: h.hole_number,
+          par: h.par,
+          stroke_index: h.stroke_index,
+          distance: h.distance,
+          image_url: h.image_url ?? null,
+        })),
     );
     setEditError(null);
     setEditSuccess(false);
@@ -113,12 +215,34 @@ export function AdminCoursesPage() {
     setEditSuccess(false);
     try {
       await api.updateCourse(selectedCourseId, { name: editName, slope_rating: editSlope, course_rating: editRating }, token);
-      await api.replaceCourseHoles(selectedCourseId, editHoles, token);
+      const holesPayload = editHoles.map(({ hole_number, par, stroke_index, distance }) => ({
+        hole_number,
+        par,
+        stroke_index,
+        distance,
+      }));
+      await api.replaceCourseHoles(selectedCourseId, holesPayload, token);
       setEditSuccess(true);
       await load();
     } catch (err) {
       setEditError(err instanceof Error ? err.message : "Failed to update course");
     }
+  };
+
+  const applyCourseUpdate = (updated: CourseResponse) => {
+    setCourses((cur) => cur.map((c) => (c.id === updated.id ? updated : c)));
+    setEditHoles(
+      [...updated.holes]
+        .sort((a, b) => a.hole_number - b.hole_number)
+        .map((h) => ({
+          id: h.id,
+          hole_number: h.hole_number,
+          par: h.par,
+          stroke_index: h.stroke_index,
+          distance: h.distance,
+          image_url: h.image_url ?? null,
+        })),
+    );
   };
 
   const selectedCourse = courses.find((c) => c.id === selectedCourseId);
@@ -182,7 +306,7 @@ export function AdminCoursesPage() {
               Course rating (50–85)
               <input type="number" min={50} max={85} step={0.1} value={editRating} onChange={(e) => setEditRating(Number(e.target.value))} />
             </label>
-            <HoleEditor holes={editHoles} setHoles={setEditHoles} />
+            <HoleEditor holes={editHoles} setHoles={setEditHoles} token={token} onCourseUpdate={applyCourseUpdate} />
             {editError && <p className="form-error">{editError}</p>}
             {editSuccess && <p className="form-success">{t('courses.updated')}</p>}
             <button className="button-secondary" type="submit">{t('courses.update')}</button>

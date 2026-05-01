@@ -75,6 +75,7 @@ class Hole(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     par: Mapped[int] = mapped_column(Integer, nullable=False)
     stroke_index: Mapped[int] = mapped_column(Integer, nullable=False)
     distance: Mapped[int] = mapped_column(Integer, nullable=False)
+    image_path: Mapped[str | None] = mapped_column(String(255))
 
     course: Mapped["Course"] = relationship(back_populates="holes")
     scores: Mapped[list["Score"]] = relationship(back_populates="hole")
@@ -83,6 +84,10 @@ class Hole(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UniqueConstraint("course_id", "hole_number", name="uq_holes_course_id_hole_number"),
         UniqueConstraint("course_id", "stroke_index", name="uq_holes_course_id_stroke_index"),
     )
+
+    @property
+    def image_url(self) -> str | None:
+        return f"/media/{self.image_path}" if self.image_path else None
 
 
 class Tournament(UUIDPrimaryKeyMixin, TimestampMixin, Base):

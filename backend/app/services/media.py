@@ -85,3 +85,18 @@ async def store_player_photo(user_id, upload: UploadFile) -> dict[str, str]:
         "avatar": _save_variant(image, avatar_path, (320, 320)),
         "feature": _save_variant(image, feature_path, (720, 960)),
     }
+
+
+async def store_hole_image(hole_id, upload: UploadFile) -> str:
+    settings = get_settings()
+    base_dir = settings.media_root / "holes" / str(hole_id)
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    contents = await upload.read()
+    image = _remove_edge_white_background(Image.open(BytesIO(contents)))
+
+    image.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
+
+    output_path = base_dir / "image.png"
+    image.save(output_path, format="PNG", optimize=True)
+    return str(output_path.relative_to(settings.media_root))

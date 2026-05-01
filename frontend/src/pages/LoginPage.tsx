@@ -47,7 +47,8 @@ export function LoginPage() {
       </div>
       <div className="login-panel">
         <p className="eyebrow">{t('auth.loginHeader')}</p>
-        <h1>The Douchebags Open</h1>
+        <img className="brand-logo brand-logo--login" src="/logo.svg" alt="The Douchebags Open" />
+        <h1 className="visually-hidden">The Douchebags Open</h1>
         <p className="hero-subtitle">
           {t('auth.subtitle')}
         </p>

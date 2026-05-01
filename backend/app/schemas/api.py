@@ -60,6 +60,7 @@ class HoleResponse(APIModel):
     par: int
     stroke_index: int
     distance: int
+    image_url: str | None = None
 
 
 class CourseCreate(BaseModel):
@@ -219,6 +220,7 @@ class HoleScorecardResponse(APIModel):
     net_strokes: int | None = None
     stableford_points: int | None = None
     handicap_strokes: int = 0
+    image_url: str | None = None
 
 
 class BonusUnlockResponse(APIModel):
