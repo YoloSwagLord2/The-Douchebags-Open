@@ -682,6 +682,42 @@ button {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.player-selection-row {
+  grid-template-columns: auto 2.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.player-selection-row__thumb {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  object-fit: cover;
+  background: rgba(255, 107, 157, 0.18);
+  color: var(--gold);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.player-selection-row__thumb--fallback {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.player-selection-row__copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.player-selection-row__copy > span,
+.player-selection-row__copy > small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .upload-box {
   display: grid;
   gap: 0.5rem;

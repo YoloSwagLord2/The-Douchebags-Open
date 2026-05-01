@@ -6,6 +6,14 @@ import { t, parseErrorMessage } from "../lib/i18n";
 
 const initialForm = { name: "", username: "", email: "", password: "", hcp: 18, role: "player" };
 
+const playerInitials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "?";
+
 export function AdminPlayersPage() {
   const { token } = useAuth();
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
@@ -103,14 +111,23 @@ export function AdminPlayersPage() {
         <h2>{t('players.existingPlayers')}</h2>
         <div className="list-stack">
           {players.map((player) => (
-            <label className="selection-row" key={player.id}>
+            <label className="selection-row player-selection-row" key={player.id}>
               <input
                 checked={selectedPlayerId === player.id}
                 onChange={() => setSelectedPlayerId(player.id)}
                 type="radio"
               />
-              <span>{player.name}</span>
-              <small>{player.role} · {t('players.hcp')} {player.hcp}</small>
+              {player.photo_avatar_url ? (
+                <img className="player-selection-row__thumb" src={player.photo_avatar_url} alt={player.name} />
+              ) : (
+                <span className="player-selection-row__thumb player-selection-row__thumb--fallback" aria-hidden="true">
+                  {playerInitials(player.name)}
+                </span>
+              )}
+              <span className="player-selection-row__copy">
+                <span>{player.name}</span>
+                <small>{player.role} · {t('players.hcp')} {player.hcp}</small>
+              </span>
             </label>
           ))}
         </div>
