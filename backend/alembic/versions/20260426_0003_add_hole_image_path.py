@@ -15,9 +15,16 @@ branch_labels = None
 depends_on = None
 
 
+def _column_exists(table_name: str, column_name: str) -> bool:
+    inspector = sa.inspect(op.get_bind())
+    return any(column["name"] == column_name for column in inspector.get_columns(table_name))
+
+
 def upgrade() -> None:
-    op.add_column("holes", sa.Column("image_path", sa.String(255), nullable=True))
+    if not _column_exists("holes", "image_path"):
+        op.add_column("holes", sa.Column("image_path", sa.String(255), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column("holes", "image_path")
+    if _column_exists("holes", "image_path"):
+        op.drop_column("holes", "image_path")
