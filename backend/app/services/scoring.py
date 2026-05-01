@@ -20,6 +20,7 @@ from app.models.entities import (
     Hole,
     NotificationRecipient,
     Round,
+    RoundPlayer,
     Score,
     ScoreRevision,
     Tournament,
@@ -149,14 +150,52 @@ def get_round_or_404(db: Session, round_id: uuid.UUID) -> Round:
 
 
 def ensure_player_can_score(db: Session, round_obj: Round, player_id: uuid.UUID) -> None:
-    roster_entry = db.scalar(
-        select(TournamentPlayer).where(
-            TournamentPlayer.tournament_id == round_obj.tournament_id,
-            TournamentPlayer.player_id == player_id,
+    if not _player_ids_for_round(db, round_obj):
+        roster_entry = db.scalar(
+            select(TournamentPlayer).where(
+                TournamentPlayer.tournament_id == round_obj.tournament_id,
+                TournamentPlayer.player_id == player_id,
+            )
         )
+        if not roster_entry:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Player is not in the tournament roster")
+        return
+
+    round_roster_entry = db.scalar(
+        select(RoundPlayer).where(RoundPlayer.round_id == round_obj.id, RoundPlayer.player_id == player_id)
     )
-    if not roster_entry:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Player is not in the tournament roster")
+    if not round_roster_entry:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Player is not in this round roster")
+
+
+def _player_ids_for_round(db: Session, round_obj: Round) -> list[uuid.UUID]:
+    return list(db.scalars(select(RoundPlayer.player_id).where(RoundPlayer.round_id == round_obj.id)).all())
+
+
+def _players_for_round(db: Session, round_obj: Round) -> list[User]:
+    round_player_ids = _player_ids_for_round(db, round_obj)
+    if round_player_ids:
+        return db.scalars(
+            select(User)
+            .join(RoundPlayer, RoundPlayer.player_id == User.id)
+            .where(RoundPlayer.round_id == round_obj.id)
+            .order_by(User.name.asc())
+        ).all()
+    return db.scalars(
+        select(User)
+        .join(TournamentPlayer, TournamentPlayer.player_id == User.id)
+        .where(TournamentPlayer.tournament_id == round_obj.tournament_id)
+        .order_by(User.name.asc())
+    ).all()
+
+
+def _round_roster_maps(db: Session, rounds: list[Round]) -> tuple[dict[uuid.UUID, list[User]], dict[uuid.UUID, set[uuid.UUID]]]:
+    players_by_round = {round_obj.id: _players_for_round(db, round_obj) for round_obj in rounds}
+    player_ids_by_round = {
+        round_id: {player.id for player in players}
+        for round_id, players in players_by_round.items()
+    }
+    return players_by_round, player_ids_by_round
 
 
 def get_player_scores(db: Session, round_id: uuid.UUID, player_id: uuid.UUID) -> dict[uuid.UUID, int]:
@@ -172,6 +211,7 @@ def build_round_meta(round_obj: Round) -> RoundMeta:
         course_id=round_obj.course_id,
         course_name=round_obj.course.name,
         round_number=round_obj.round_number,
+        name=round_obj.name,
         date=round_obj.date,
         status=round_obj.status,
     )
@@ -484,12 +524,7 @@ def get_active_bonus_points_for_tournament(db: Session, *, player_id: uuid.UUID,
 
 
 def build_round_leaderboard(db: Session, round_obj: Round) -> list[LeaderboardEntry]:
-    roster_players = db.scalars(
-        select(User)
-        .join(TournamentPlayer, TournamentPlayer.player_id == User.id)
-        .where(TournamentPlayer.tournament_id == round_obj.tournament_id)
-        .order_by(User.name.asc())
-    ).all()
+    roster_players = _players_for_round(db, round_obj)
 
     official_entries: list[LeaderboardEntry] = []
     for player in roster_players:
@@ -532,12 +567,9 @@ def build_tournament_leaderboard(db: Session, tournament_id: uuid.UUID) -> tuple
     ).unique().all()
     if not rounds:
         return tournament, []
-    roster_players = db.scalars(
-        select(User)
-        .join(TournamentPlayer, TournamentPlayer.player_id == User.id)
-        .where(TournamentPlayer.tournament_id == tournament_id)
-        .order_by(User.name.asc())
-    ).all()
+    players_by_round, player_ids_by_round = _round_roster_maps(db, rounds)
+    roster_players_by_id = {player.id: player for players in players_by_round.values() for player in players}
+    roster_players = sorted(roster_players_by_id.values(), key=lambda player: player.name)
 
     entries: list[LeaderboardEntry] = []
     for player in roster_players:
@@ -546,6 +578,8 @@ def build_tournament_leaderboard(db: Session, tournament_id: uuid.UUID) -> tuple
         official_stableford = 0
         holes_played = 0
         for round_obj in rounds:
+            if player.id not in player_ids_by_round[round_obj.id]:
+                continue
             scores = get_player_scores(db, round_obj.id, player.id)
             computed = compute_round_totals(round_obj.course, float(player.hcp), scores)
             gross_total += computed.totals.gross_strokes
@@ -630,16 +664,13 @@ def build_tournament_overview(db: Session, tournament_id: uuid.UUID) -> Tourname
     ).unique().all()
 
     round_summaries = [
-        RoundSummaryItem(id=r.id, round_number=r.round_number, date=r.date, course_name=r.course.name)
+        RoundSummaryItem(id=r.id, round_number=r.round_number, name=r.name, date=r.date, course_name=r.course.name)
         for r in rounds
     ]
 
-    roster_players = db.scalars(
-        select(User)
-        .join(TournamentPlayer, TournamentPlayer.player_id == User.id)
-        .where(TournamentPlayer.tournament_id == tournament_id)
-        .order_by(User.name.asc())
-    ).all()
+    players_by_round, player_ids_by_round = _round_roster_maps(db, rounds)
+    roster_players_by_id = {player.id: player for players in players_by_round.values() for player in players}
+    roster_players = sorted(roster_players_by_id.values(), key=lambda player: player.name)
 
     entries: list[TournamentOverviewEntry] = []
     for player in roster_players:
@@ -647,6 +678,9 @@ def build_tournament_overview(db: Session, tournament_id: uuid.UUID) -> Tourname
         total_stableford = 0
         total_holes_played = 0
         for round_obj in rounds:
+            if player.id not in player_ids_by_round[round_obj.id]:
+                round_results.append(PlayerRoundResult(round_id=round_obj.id, holes_played=0, stableford=0))
+                continue
             scores = get_player_scores(db, round_obj.id, player.id)
             computed = compute_round_totals(round_obj.course, float(player.hcp), scores)
             round_results.append(PlayerRoundResult(

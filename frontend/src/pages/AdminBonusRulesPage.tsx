@@ -7,6 +7,10 @@ import { t } from "../lib/i18n";
 
 const initialRule: RuleNode = { op: "and", conditions: [{ field: "strokes", operator: "gte", value: 10 }] };
 
+function displayRoundName(round: { round_number: number; name?: string | null }) {
+  return round.name?.trim() || `Round ${round.round_number}`;
+}
+
 export function AdminBonusRulesPage() {
   const { token } = useAuth();
   const [rules, setRules] = useState<BonusRuleResponse[]>([]);
@@ -72,7 +76,7 @@ export function AdminBonusRulesPage() {
               : navigation.flatMap((item) =>
                   item.rounds.map((round) => (
                     <option key={round.id} value={round.id}>
-                      {item.name} • Round {round.round_number}
+                      {item.name} • {displayRoundName(round)}
                     </option>
                   )),
                 )}

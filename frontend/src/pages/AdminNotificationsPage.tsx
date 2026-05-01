@@ -4,6 +4,10 @@ import { useAuth } from "../lib/auth";
 import type { NavigationTournament, NotificationResponse, PlayerResponse } from "../lib/types";
 import { t } from "../lib/i18n";
 
+function displayRoundName(round: { round_number: number; name?: string | null }) {
+  return round.name?.trim() || `Round ${round.round_number}`;
+}
+
 export function AdminNotificationsPage() {
   const { token } = useAuth();
   const [items, setItems] = useState<NotificationResponse[]>([]);
@@ -74,7 +78,7 @@ export function AdminNotificationsPage() {
               {navigation.flatMap((item) =>
                 item.rounds.map((round) => (
                   <option key={round.id} value={round.id}>
-                    {item.name} • Round {round.round_number}
+                    {item.name} • {displayRoundName(round)}
                   </option>
                 )),
               )}

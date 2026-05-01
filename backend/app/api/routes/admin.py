@@ -20,6 +20,7 @@ from app.models.entities import (
     Notification,
     NotificationRecipient,
     Round,
+    RoundPlayer,
     Score,
     ScoreRevision,
     Tournament,
@@ -378,19 +379,56 @@ def update_roster(
     db.execute(delete(TournamentPlayer).where(TournamentPlayer.tournament_id == tournament_id))
     for player_id in payload.player_ids:
         db.add(TournamentPlayer(tournament_id=tournament_id, player_id=player_id))
+    for round_obj in db.scalars(select(Round).where(Round.tournament_id == tournament_id)).all():
+        existing_round_player_ids = set(db.scalars(select(RoundPlayer.player_id).where(RoundPlayer.round_id == round_obj.id)).all())
+        for player_id in payload.player_ids:
+            if player_id not in existing_round_player_ids:
+                db.add(RoundPlayer(round_id=round_obj.id, player_id=player_id))
     db.commit()
     return {"status": "ok"}
 
 
+def _validate_round_player_ids(db: Session, tournament_id: uuid.UUID, player_ids: list[uuid.UUID]) -> None:
+    if not player_ids:
+        return
+    tournament_player_ids = set(
+        db.scalars(select(TournamentPlayer.player_id).where(TournamentPlayer.tournament_id == tournament_id)).all()
+    )
+    invalid_player_ids = set(player_ids) - tournament_player_ids
+    if invalid_player_ids:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Round players must already be in the tournament roster",
+        )
+
+
+def _unique_player_ids(player_ids: list[uuid.UUID]) -> list[uuid.UUID]:
+    return list(dict.fromkeys(player_ids))
+
+
 @router.get("/rounds", response_model=list[RoundResponse])
 def list_rounds(_: User = Depends(require_admin), db: Session = Depends(get_db)):
-    return db.scalars(select(Round).order_by(Round.date.desc(), Round.round_number.desc())).all()
+    return db.scalars(select(Round).options(joinedload(Round.players)).order_by(Round.date.desc(), Round.round_number.desc())).unique().all()
 
 
 @router.post("/rounds", response_model=RoundResponse)
 def create_round(payload: RoundCreate, _: User = Depends(require_admin), db: Session = Depends(get_db)):
-    round_obj = Round(**payload.model_dump())
+    if payload.player_ids is not None and not payload.player_ids:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Choose at least one player for the round",
+        )
+    data = payload.model_dump(exclude={"player_ids"})
+    round_obj = Round(**data)
     db.add(round_obj)
+    db.flush()
+    player_ids = payload.player_ids
+    if player_ids is None:
+        player_ids = list(db.scalars(select(TournamentPlayer.player_id).where(TournamentPlayer.tournament_id == payload.tournament_id)).all())
+    player_ids = _unique_player_ids(player_ids)
+    _validate_round_player_ids(db, payload.tournament_id, player_ids)
+    for player_id in player_ids:
+        db.add(RoundPlayer(round_id=round_obj.id, player_id=player_id))
     db.commit()
     db.refresh(round_obj)
     return round_obj
@@ -398,11 +436,33 @@ def create_round(payload: RoundCreate, _: User = Depends(require_admin), db: Ses
 
 @router.patch("/rounds/{round_id}", response_model=RoundResponse)
 def update_round(round_id: uuid.UUID, payload: RoundUpdate, _: User = Depends(require_admin), db: Session = Depends(get_db)):
-    round_obj = db.scalar(select(Round).where(Round.id == round_id))
+    round_obj = db.scalar(select(Round).options(joinedload(Round.players)).where(Round.id == round_id))
     if not round_obj:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Round not found")
-    for field, value in payload.model_dump(exclude_none=True).items():
+    updates = payload.model_dump(exclude_none=True, exclude={"player_ids"})
+    for field, value in updates.items():
         setattr(round_obj, field, value)
+    if payload.player_ids is not None:
+        if not payload.player_ids:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Choose at least one player for the round",
+            )
+        player_ids = _unique_player_ids(payload.player_ids)
+        removed_player_ids = set(db.scalars(select(RoundPlayer.player_id).where(RoundPlayer.round_id == round_id)).all()) - set(player_ids)
+        if removed_player_ids:
+            scored_removed_player = db.scalar(
+                select(Score.id).where(Score.round_id == round_id, Score.player_id.in_(removed_player_ids)).limit(1)
+            )
+            if scored_removed_player:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Round has scores for removed players; keep them assigned or create a new round",
+                )
+        _validate_round_player_ids(db, round_obj.tournament_id, player_ids)
+        db.execute(delete(RoundPlayer).where(RoundPlayer.round_id == round_id))
+        for player_id in player_ids:
+            db.add(RoundPlayer(round_id=round_id, player_id=player_id))
     db.commit()
     db.refresh(round_obj)
     return round_obj
@@ -655,9 +715,11 @@ def create_admin_notification(
         if not payload.round_id:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="round_id is required")
         round_obj = get_round_or_404(db, payload.round_id)
-        recipient_ids = db.scalars(
-            select(TournamentPlayer.player_id).where(TournamentPlayer.tournament_id == round_obj.tournament_id)
-        ).all()
+        recipient_ids = db.scalars(select(RoundPlayer.player_id).where(RoundPlayer.round_id == round_obj.id)).all()
+        if not recipient_ids:
+            recipient_ids = db.scalars(
+                select(TournamentPlayer.player_id).where(TournamentPlayer.tournament_id == round_obj.tournament_id)
+            ).all()
     elif payload.target_type == "tournament_roster":
         if not payload.tournament_id:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="tournament_id is required")

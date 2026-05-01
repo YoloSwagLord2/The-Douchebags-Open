@@ -25,6 +25,7 @@ export interface AuthResponse {
 export interface NavigationRound {
   id: string;
   round_number: number;
+  name?: string | null;
   date: string;
   status: RoundStatus;
   course_name: string;
@@ -67,6 +68,7 @@ export interface LeaderboardResponse {
   round?: {
     id: string;
     round_number: number;
+    name?: string | null;
     date: string;
     status: RoundStatus;
   } | null;
@@ -120,6 +122,7 @@ export interface ScorecardResponse {
     course_id: string;
     course_name: string;
     round_number: number;
+    name?: string | null;
     date: string;
     status: RoundStatus;
   };
@@ -216,9 +219,11 @@ export interface RoundResponse {
   tournament_id: string;
   course_id: string;
   round_number: number;
+  name?: string | null;
   date: string;
   status: RoundStatus;
   locked_at?: string | null;
+  player_ids: string[];
 }
 
 export interface BonusRuleResponse {
@@ -251,6 +256,7 @@ export interface AchievementRuleResponse {
 export interface RoundSummaryItem {
   id: string;
   round_number: number;
+  name?: string | null;
   date: string;
   course_name: string;
 }

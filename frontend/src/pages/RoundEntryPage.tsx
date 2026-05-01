@@ -62,12 +62,13 @@ export function RoundEntryPage() {
   const totals = scorecard?.totals;
   const hasPreviousHole = currentIndex > 0;
   const hasNextHole = scorecard ? currentIndex < scorecard.holes.length - 1 : false;
+  const roundName = scorecard?.round.name?.trim() || `Round ${scorecard?.round.round_number ?? ""}`;
 
   return (
     <div className="stack-layout score-entry-layout">
       <section className="masthead-panel score-entry-masthead">
         <div>
-          <p className="eyebrow">{scorecard?.round.tournament_name} • Round {scorecard?.round.round_number}</p>
+          <p className="eyebrow">{scorecard?.round.tournament_name} • {roundName}</p>
           <h2>{t('score.enterScores')}</h2>
           <p className="hero-subtitle">
             Tap + or − to set your strokes, then press Save and continue after each hole.

@@ -4,12 +4,16 @@ import { useAuth } from "../lib/auth";
 import type { CourseResponse, RoundResponse, TournamentResponse } from "../lib/types";
 import { t } from "../lib/i18n";
 
+function displayRoundName(round: { round_number: number; name?: string | null }) {
+  return round.name?.trim() || `Round ${round.round_number}`;
+}
+
 export function AdminRoundsPage() {
   const { token } = useAuth();
   const [rounds, setRounds] = useState<RoundResponse[]>([]);
   const [tournaments, setTournaments] = useState<TournamentResponse[]>([]);
   const [courses, setCourses] = useState<CourseResponse[]>([]);
-  const [form, setForm] = useState({ tournament_id: "", course_id: "", round_number: 1, date: "" });
+  const [form, setForm] = useState({ tournament_id: "", course_id: "", round_number: 1, name: "", date: "" });
 
   const load = async () => {
     if (!token) return;
@@ -49,6 +53,7 @@ export function AdminRoundsPage() {
             {courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
           <input type="number" value={form.round_number} onChange={(event) => setForm({ ...form, round_number: Number(event.target.value) })} />
+          <input placeholder="Round name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
           <input type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} />
           <button className="button-primary" type="submit">{t('rounds.create')}</button>
         </form>
@@ -59,7 +64,7 @@ export function AdminRoundsPage() {
         <div className="list-stack">
           {rounds.map((round) => (
             <article className="detail-panel detail-panel--nested" key={round.id}>
-              <strong>{t('rounds.round')} {round.round_number}</strong>
+              <strong>{displayRoundName(round)}</strong>
               <p>{round.date}</p>
               <button className="button-ghost" onClick={() => token && api.lockRound(round.id, token).then(load)} type="button">
                 {round.status === "locked" ? t('rounds.locked') : t('rounds.lock')}

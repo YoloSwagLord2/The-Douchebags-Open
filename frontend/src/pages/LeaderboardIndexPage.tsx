@@ -38,6 +38,10 @@ function FeaturedLeader({ entry }: { entry?: LeaderboardEntry }) {
   );
 }
 
+function displayRoundName(round: { round_number: number; name?: string | null }) {
+  return round.name?.trim() || `Round ${round.round_number}`;
+}
+
 function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
   if (overview.rounds.length === 0) {
     return (
@@ -70,7 +74,7 @@ function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
               <th className="round-matrix__player-col">Player</th>
               {overview.rounds.map((r) => (
                 <th key={r.id}>
-                  R{r.round_number}
+                  {displayRoundName(r)}
                   <br />
                   <small>{r.course_name}</small>
                 </th>

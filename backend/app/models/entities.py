@@ -117,6 +117,7 @@ class Round(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     tournament_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tournaments.id", ondelete="CASCADE"))
     course_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("courses.id"))
     round_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    name: Mapped[str | None] = mapped_column(String(160))
     date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[RoundStatus] = mapped_column(
         enum_column(RoundStatus, "round_status"), nullable=False, default=RoundStatus.OPEN
@@ -125,9 +126,14 @@ class Round(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     tournament: Mapped["Tournament"] = relationship(back_populates="rounds")
     course: Mapped["Course"] = relationship(back_populates="rounds")
+    players: Mapped[list["RoundPlayer"]] = relationship(back_populates="round", cascade="all, delete-orphan")
     scores: Mapped[list["Score"]] = relationship(back_populates="round", cascade="all, delete-orphan")
 
     __table_args__ = (UniqueConstraint("tournament_id", "round_number", name="uq_rounds_tournament_round_number"),)
+
+    @property
+    def player_ids(self) -> list[uuid.UUID]:
+        return [rp.player_id for rp in self.players]
 
 
 class TournamentPlayer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -140,6 +146,18 @@ class TournamentPlayer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     player: Mapped["User"] = relationship(back_populates="roster_entries")
 
     __table_args__ = (UniqueConstraint("tournament_id", "player_id", name="uq_tournament_players_pair"),)
+
+
+class RoundPlayer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "round_players"
+
+    round_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("rounds.id", ondelete="CASCADE"))
+    player_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+    round: Mapped["Round"] = relationship(back_populates="players")
+    player: Mapped["User"] = relationship()
+
+    __table_args__ = (UniqueConstraint("round_id", "player_id", name="uq_round_players_pair"),)
 
 
 class Score(UUIDPrimaryKeyMixin, TimestampMixin, Base):

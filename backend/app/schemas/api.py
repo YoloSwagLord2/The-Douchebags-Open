@@ -138,14 +138,18 @@ class RoundCreate(BaseModel):
     tournament_id: uuid.UUID
     course_id: uuid.UUID
     round_number: int = Field(ge=1, le=10)
+    name: str | None = None
     date: dt.date
+    player_ids: list[uuid.UUID] | None = None
 
 
 class RoundUpdate(BaseModel):
     course_id: uuid.UUID | None = None
     round_number: int | None = Field(default=None, ge=1, le=10)
+    name: str | None = None
     date: dt.date | None = None
     status: RoundStatus | None = None
+    player_ids: list[uuid.UUID] | None = None
 
 
 class RoundResponse(APIModel):
@@ -153,14 +157,17 @@ class RoundResponse(APIModel):
     tournament_id: uuid.UUID
     course_id: uuid.UUID
     round_number: int
+    name: str | None = None
     date: dt.date
     status: RoundStatus
     locked_at: dt.datetime | None
+    player_ids: list[uuid.UUID] = []
 
 
 class NavigationRound(APIModel):
     id: uuid.UUID
     round_number: int
+    name: str | None = None
     date: dt.date
     status: RoundStatus
     course_name: str
@@ -180,6 +187,7 @@ class TournamentRosterUpdate(BaseModel):
 class RoundSummaryItem(APIModel):
     id: uuid.UUID
     round_number: int
+    name: str | None = None
     date: dt.date
     course_name: str
 
@@ -260,6 +268,7 @@ class RoundMeta(APIModel):
     course_id: uuid.UUID
     course_name: str
     round_number: int
+    name: str | None = None
     date: dt.date
     status: RoundStatus
 

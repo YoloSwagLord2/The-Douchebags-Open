@@ -43,6 +43,10 @@ function FeaturedLeader({ entry }: { entry?: LeaderboardEntry }) {
   );
 }
 
+function displayRoundName(round: { round_number: number; name?: string | null }) {
+  return round.name?.trim() || `Round ${round.round_number}`;
+}
+
 function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
   if (overview.rounds.length === 0) {
     return (
@@ -73,7 +77,7 @@ function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
             <tr>
               <th className="round-matrix__player-col">Player</th>
               {overview.rounds.map((r) => (
-                <th key={r.id}>R{r.round_number}<br /><small>{r.course_name}</small></th>
+                <th key={r.id}>{displayRoundName(r)}<br /><small>{r.course_name}</small></th>
               ))}
               <th>Total</th>
             </tr>
@@ -148,12 +152,14 @@ export function LeaderboardPage({ scope }: { scope: "round" | "tournament" }) {
 
   // Use nav data immediately so the title never shows "Loading…" when nav is already available
   const navTournament = outlet.navigation.find(
-    (item) => item.id === currentId || item.id === data?.tournament.id,
+    (item) => item.id === currentId || item.id === data?.tournament.id || item.rounds.some((round) => round.id === currentId),
   );
   const tournamentName = overview?.tournament_name
     ?? data?.tournament.name
     ?? navTournament?.name
     ?? "Loading…";
+  const navRound = navTournament?.rounds.find((item) => item.id === (data?.round?.id ?? currentId));
+  const currentRound = data?.round ?? navRound;
 
   return (
     <div className="stack-layout">
@@ -163,7 +169,7 @@ export function LeaderboardPage({ scope }: { scope: "round" | "tournament" }) {
           <h2>{tournamentName}</h2>
           <p className="hero-subtitle">
             {scope === "round"
-              ? `Round ${data?.round?.round_number ?? "—"} at ${navTournament?.rounds.find((item) => item.id === data?.round?.id)?.course_name ?? ""}`
+              ? `${currentRound ? displayRoundName(currentRound) : "Round —"} at ${navRound?.course_name ?? ""}`
               : "Official standings and bonus-adjusted rankings."}
           </p>
         </div>
