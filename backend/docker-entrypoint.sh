@@ -21,6 +21,15 @@ for attempt in range(1, 31):
         print("Database is reachable.", flush=True)
         break
     except OperationalError as exc:
+        message = str(exc.orig).lower()
+        if "password authentication failed" in message or "role" in message and "does not exist" in message:
+            print(
+                "Database credentials were rejected. "
+                "Set DATABASE_URL to match POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB on the Postgres container.",
+                file=sys.stderr,
+                flush=True,
+            )
+            raise
         if attempt == 30:
             print(
                 "Database is not reachable after 60 seconds. "
