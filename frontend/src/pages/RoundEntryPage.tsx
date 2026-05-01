@@ -63,6 +63,7 @@ export function RoundEntryPage() {
   const hasPreviousHole = currentIndex > 0;
   const hasNextHole = scorecard ? currentIndex < scorecard.holes.length - 1 : false;
   const roundName = scorecard?.round.name?.trim() || `Round ${scorecard?.round.round_number ?? ""}`;
+  const courseName = scorecard?.round.course_name;
 
   return (
     <div className="stack-layout score-entry-layout">
@@ -79,6 +80,9 @@ export function RoundEntryPage() {
 
       {currentHole ? (
         <section className="hole-stage">
+          {courseName && (
+            <p className="score-course-label">{roundName} • {courseName}</p>
+          )}
           {currentHole.image_url ? (
             <button
               className="hole-image-wrap"
