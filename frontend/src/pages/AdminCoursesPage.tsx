@@ -173,6 +173,7 @@ export function AdminCoursesPage() {
   const [editHoleCount, setEditHoleCount] = useState(18);
   const [editError, setEditError] = useState<string | null>(null);
   const [editSuccess, setEditSuccess] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const load = async () => {
     if (!token) return;
@@ -202,6 +203,7 @@ export function AdminCoursesPage() {
     setEditHoleCount(courseHoles.length || 18);
     setEditHoles(courseHoles);
     setEditError(null);
+    setDeleteError(null);
     setEditSuccess(false);
   }, [selectedCourseId]);
 
@@ -257,6 +259,23 @@ export function AdminCoursesPage() {
     setCourses((cur) => cur.map((c) => (c.id === updated.id ? updated : c)));
     setEditHoleCount(courseHoles.length || 18);
     setEditHoles(courseHoles);
+  };
+
+  const deleteSelectedCourse = async () => {
+    if (!token || !selectedCourseId) return;
+    const confirmed = window.confirm(t('courses.deleteConfirm'));
+    if (!confirmed) return;
+    setDeleteError(null);
+    setEditError(null);
+    setEditSuccess(false);
+    try {
+      await api.deleteCourse(selectedCourseId, token);
+      setSelectedCourseId("");
+      setEditHoles([]);
+      await load();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete course");
+    }
   };
 
   const selectedCourse = courses.find((c) => c.id === selectedCourseId);
@@ -350,8 +369,12 @@ export function AdminCoursesPage() {
             </label>
             <HoleEditor holes={editHoles} setHoles={setEditHoles} token={token} onCourseUpdate={applyCourseUpdate} />
             {editError && <p className="form-error">{editError}</p>}
+            {deleteError && <p className="form-error">{deleteError}</p>}
             {editSuccess && <p className="form-success">{t('courses.updated')}</p>}
-            <button className="button-secondary" type="submit">{t('courses.update')}</button>
+            <div className="form-actions">
+              <button className="button-secondary" type="submit">{t('courses.update')}</button>
+              <button className="button-ghost" onClick={deleteSelectedCourse} type="button">{t('courses.delete')}</button>
+            </div>
           </form>
         </section>
       )}

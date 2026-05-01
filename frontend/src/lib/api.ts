@@ -122,6 +122,8 @@ export const api = {
     request<CourseResponse>("/admin/courses", { method: "POST", body: JSON.stringify(payload) }, token),
   updateCourse: (id: string, payload: Record<string, unknown>, token: string) =>
     request<CourseResponse>(`/admin/courses/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
+  deleteCourse: (id: string, token: string) =>
+    request<{ status: string }>(`/admin/courses/${id}`, { method: "DELETE" }, token),
   replaceCourseHoles: (id: string, holes: Array<Record<string, unknown>>, token: string) =>
     request<CourseResponse>(`/admin/courses/${id}/holes`, { method: "PUT", body: JSON.stringify(holes) }, token),
   uploadHoleImage: async (holeId: string, file: File, token: string) => {

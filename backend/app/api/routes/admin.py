@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import require_admin
@@ -225,8 +226,18 @@ def delete_course(course_id: uuid.UUID, _: User = Depends(require_admin), db: Se
     course = db.scalar(select(Course).where(Course.id == course_id))
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    used_by_round = db.scalar(select(Round.id).where(Round.course_id == course_id).limit(1))
+    if used_by_round:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Course is used by one or more rounds and cannot be deleted",
+        )
     db.delete(course)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Course cannot be deleted") from exc
     return {"status": "ok"}
 
 
@@ -240,13 +251,36 @@ def replace_holes(
     course = db.scalar(select(Course).options(joinedload(Course.holes)).where(Course.id == course_id))
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
-    existing_images = {hole.hole_number: hole.image_path for hole in course.holes}
-    course.holes.clear()
+
+    existing_by_number = {hole.hole_number: hole for hole in course.holes}
+    requested_numbers = {hole_payload.hole_number for hole_payload in holes}
+    removed_holes = [hole for hole in course.holes if hole.hole_number not in requested_numbers]
+    removed_hole_ids = [hole.id for hole in removed_holes]
+    if removed_hole_ids:
+        has_scores = db.scalar(select(Score.id).where(Score.hole_id.in_(removed_hole_ids)).limit(1))
+        has_revisions = db.scalar(select(ScoreRevision.id).where(ScoreRevision.hole_id.in_(removed_hole_ids)).limit(1))
+        if has_scores or has_revisions:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Course has scores on removed holes; create a new course instead",
+            )
+
     for hole_payload in holes:
-        new_hole = Hole(**hole_payload.model_dump())
-        new_hole.image_path = existing_images.get(new_hole.hole_number)
-        course.holes.append(new_hole)
-    db.commit()
+        existing_hole = existing_by_number.get(hole_payload.hole_number)
+        if existing_hole:
+            for field, value in hole_payload.model_dump().items():
+                setattr(existing_hole, field, value)
+        else:
+            course.holes.append(Hole(**hole_payload.model_dump()))
+
+    for removed_hole in removed_holes:
+        db.delete(removed_hole)
+
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Course holes could not be updated") from exc
     db.refresh(course)
     return course
 
