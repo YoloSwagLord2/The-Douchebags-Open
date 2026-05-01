@@ -376,14 +376,35 @@ def update_roster(
     tournament = db.scalar(select(Tournament).where(Tournament.id == tournament_id))
     if not tournament:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tournament not found")
+    existing_player_ids = set(
+        db.scalars(select(TournamentPlayer.player_id).where(TournamentPlayer.tournament_id == tournament_id)).all()
+    )
+    next_player_ids = set(_unique_player_ids(payload.player_ids))
+    removed_player_ids = existing_player_ids - next_player_ids
+    if removed_player_ids:
+        scored_removed_player = db.scalar(
+            select(Score.id)
+            .join(Round, Round.id == Score.round_id)
+            .where(Round.tournament_id == tournament_id, Score.player_id.in_(removed_player_ids))
+            .limit(1)
+        )
+        if scored_removed_player:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Tournament roster has scores for removed players; keep them assigned to preserve score history",
+            )
     db.execute(delete(TournamentPlayer).where(TournamentPlayer.tournament_id == tournament_id))
-    for player_id in payload.player_ids:
+    for player_id in next_player_ids:
         db.add(TournamentPlayer(tournament_id=tournament_id, player_id=player_id))
-    for round_obj in db.scalars(select(Round).where(Round.tournament_id == tournament_id)).all():
-        existing_round_player_ids = set(db.scalars(select(RoundPlayer.player_id).where(RoundPlayer.round_id == round_obj.id)).all())
-        for player_id in payload.player_ids:
-            if player_id not in existing_round_player_ids:
-                db.add(RoundPlayer(round_id=round_obj.id, player_id=player_id))
+    if removed_player_ids:
+        round_ids = db.scalars(select(Round.id).where(Round.tournament_id == tournament_id)).all()
+        if round_ids:
+            db.execute(
+                delete(RoundPlayer).where(
+                    RoundPlayer.round_id.in_(round_ids),
+                    RoundPlayer.player_id.in_(removed_player_ids),
+                )
+            )
     db.commit()
     return {"status": "ok"}
 
@@ -439,7 +460,7 @@ def update_round(round_id: uuid.UUID, payload: RoundUpdate, _: User = Depends(re
     round_obj = db.scalar(select(Round).options(joinedload(Round.players)).where(Round.id == round_id))
     if not round_obj:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Round not found")
-    updates = payload.model_dump(exclude_none=True, exclude={"player_ids"})
+    updates = payload.model_dump(exclude_unset=True, exclude={"player_ids"})
     for field, value in updates.items():
         setattr(round_obj, field, value)
     if payload.player_ids is not None:

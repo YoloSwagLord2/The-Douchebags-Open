@@ -11,12 +11,19 @@ type RoundDraft = {
   player_ids: string[];
 };
 
+const EMPTY_PLAYER_IDS: string[] = [];
+
 function toggleId(ids: string[], id: string) {
   return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
 }
 
 function roundLabel(round: Pick<RoundResponse, "round_number" | "name">) {
   return round.name?.trim() || `Round ${round.round_number}`;
+}
+
+function filteredRoundPlayers(roundPlayerIds: string[], tournamentPlayerIds: string[]) {
+  const allowedIds = new Set(tournamentPlayerIds);
+  return roundPlayerIds.filter((id) => allowedIds.has(id));
 }
 
 export function AdminTournamentsPage() {
@@ -43,6 +50,8 @@ export function AdminTournamentsPage() {
   const [roundDrafts, setRoundDrafts] = useState<Record<string, RoundDraft>>({});
   const [roundError, setRoundError] = useState<string | null>(null);
   const [roundSuccess, setRoundSuccess] = useState<string | null>(null);
+  const selectedTournament = tournaments.find((t) => t.id === selectedTournamentId);
+  const savedTournamentPlayerIds = selectedTournament?.player_ids ?? EMPTY_PLAYER_IDS;
 
   const load = async () => {
     if (!token) return;
@@ -64,18 +73,13 @@ export function AdminTournamentsPage() {
   }, [token]);
 
   useEffect(() => {
-    const tournament = tournaments.find((t) => t.id === selectedTournamentId);
-    setSelectedPlayers(tournament ? tournament.player_ids : []);
+    setSelectedPlayers(savedTournamentPlayerIds);
     setRosterSuccess(false);
     setRosterError(null);
     setRoundError(null);
     setRoundSuccess(null);
-    setRoundForm({ name: "", course_id: "", date: "", player_ids: tournament ? tournament.player_ids : [] });
-  }, [selectedTournamentId, tournaments]);
-
-  useEffect(() => {
-    setRoundForm((current) => ({ ...current, player_ids: selectedPlayers }));
-  }, [selectedPlayers]);
+    setRoundForm({ name: "", course_id: "", date: "", player_ids: savedTournamentPlayerIds });
+  }, [selectedTournamentId, savedTournamentPlayerIds]);
 
   useEffect(() => {
     setRoundDrafts(() => {
@@ -87,12 +91,14 @@ export function AdminTournamentsPage() {
             name: round.name ?? "",
             course_id: round.course_id,
             date: round.date,
-            player_ids: round.player_ids?.length ? round.player_ids : selectedPlayers,
+            player_ids: round.player_ids?.length
+              ? filteredRoundPlayers(round.player_ids, savedTournamentPlayerIds)
+              : savedTournamentPlayerIds,
           };
         });
       return next;
     });
-  }, [rounds, selectedTournamentId, selectedPlayers]);
+  }, [rounds, selectedTournamentId, savedTournamentPlayerIds]);
 
   const create = async (event: FormEvent) => {
     event.preventDefault();
@@ -117,7 +123,10 @@ export function AdminTournamentsPage() {
       await api.updateRoster(selectedTournamentId, selectedPlayers, token);
       const next = await load();
       const updated = next?.find((t) => t.id === selectedTournamentId);
-      if (updated) setSelectedPlayers(updated.player_ids);
+      if (updated) {
+        setSelectedPlayers(updated.player_ids);
+        setRoundForm((current) => ({ ...current, player_ids: updated.player_ids }));
+      }
       setRosterSuccess(true);
     } catch (err) {
       setRosterError(err instanceof Error ? err.message : "Failed to save roster");
@@ -139,7 +148,7 @@ export function AdminTournamentsPage() {
         date: roundForm.date,
         player_ids: roundForm.player_ids,
       }, token);
-      setRoundForm({ name: "", course_id: "", date: "", player_ids: selectedPlayers });
+      setRoundForm({ name: "", course_id: "", date: "", player_ids: savedTournamentPlayerIds });
       await load();
     } catch (err) {
       setRoundError(err instanceof Error ? err.message : "Failed to create round");
@@ -176,11 +185,14 @@ export function AdminTournamentsPage() {
     }
   };
 
-  const selectedTournament = tournaments.find((t) => t.id === selectedTournamentId);
   const tournamentRounds = rounds
     .filter((r) => r.tournament_id === selectedTournamentId)
     .sort((a, b) => a.round_number - b.round_number);
-  const rosterPlayers = players.filter((player) => selectedPlayers.includes(player.id));
+  const rosterPlayers = players.filter((player) => savedTournamentPlayerIds.includes(player.id));
+  const hasUnsavedRosterChanges = selectedTournament
+    ? selectedPlayers.length !== savedTournamentPlayerIds.length
+      || selectedPlayers.some((id) => !savedTournamentPlayerIds.includes(id))
+    : false;
 
   return (
     <div className="admin-grid">
@@ -225,6 +237,9 @@ export function AdminTournamentsPage() {
           <p className="eyebrow" style={{ marginTop: "0.5rem" }}>
             {selectedPlayers.length} of {players.length} players assigned
           </p>
+          {hasUnsavedRosterChanges && (
+            <p className="form-error">Save the tournament roster before assigning those player changes to rounds.</p>
+          )}
           <div className="list-stack">
             {players.map((player) => (
               <label className="selection-row" key={player.id}>
