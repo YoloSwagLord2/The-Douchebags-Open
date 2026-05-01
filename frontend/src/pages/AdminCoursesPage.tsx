@@ -15,6 +15,16 @@ type HoleRow = {
 
 const blankHole = (index: number): HoleRow => ({ hole_number: index + 1, par: 4, stroke_index: index + 1, distance: 320 });
 
+const normalizeHoleRows = (rows: HoleRow[], count: number): HoleRow[] =>
+  Array.from({ length: count }, (_, index) => {
+    const existing = rows[index];
+    return {
+      ...(existing ?? blankHole(index)),
+      hole_number: index + 1,
+      stroke_index: Math.min(existing?.stroke_index ?? index + 1, count),
+    };
+  });
+
 function HoleImageField({
   hole,
   token,
@@ -122,7 +132,7 @@ function HoleEditor({
           <label className="field-label">
             {t('courses.holeStrokeIndex')}
             <input
-              type="number" min={1} max={18} value={hole.stroke_index}
+              type="number" min={1} max={holes.length} value={hole.stroke_index}
               onChange={(e) => setHoles((cur) => cur.map((h, i) => i === index ? { ...h, stroke_index: Number(e.target.value) } : h))}
             />
           </label>
@@ -151,6 +161,7 @@ export function AdminCoursesPage() {
   const [slope, setSlope] = useState(113);
   const [rating, setRating] = useState(72);
   const [holes, setHoles] = useState<HoleRow[]>(Array.from({ length: 18 }, (_, i) => blankHole(i)));
+  const [holeCount, setHoleCount] = useState(18);
   const [createError, setCreateError] = useState<string | null>(null);
 
   // Edit form
@@ -159,6 +170,7 @@ export function AdminCoursesPage() {
   const [editSlope, setEditSlope] = useState(113);
   const [editRating, setEditRating] = useState(72);
   const [editHoles, setEditHoles] = useState<HoleRow[]>([]);
+  const [editHoleCount, setEditHoleCount] = useState(18);
   const [editError, setEditError] = useState<string | null>(null);
   const [editSuccess, setEditSuccess] = useState(false);
 
@@ -177,18 +189,18 @@ export function AdminCoursesPage() {
     setEditName(course.name);
     setEditSlope(course.slope_rating);
     setEditRating(course.course_rating);
-    setEditHoles(
-      [...course.holes]
-        .sort((a, b) => a.hole_number - b.hole_number)
-        .map((h) => ({
-          id: h.id,
-          hole_number: h.hole_number,
-          par: h.par,
-          stroke_index: h.stroke_index,
-          distance: h.distance,
-          image_url: h.image_url ?? null,
-        })),
-    );
+    const courseHoles = [...course.holes]
+      .sort((a, b) => a.hole_number - b.hole_number)
+      .map((h) => ({
+        id: h.id,
+        hole_number: h.hole_number,
+        par: h.par,
+        stroke_index: h.stroke_index,
+        distance: h.distance,
+        image_url: h.image_url ?? null,
+      }));
+    setEditHoleCount(courseHoles.length || 18);
+    setEditHoles(courseHoles);
     setEditError(null);
     setEditSuccess(false);
   }, [selectedCourseId]);
@@ -201,6 +213,7 @@ export function AdminCoursesPage() {
       const course = await api.createCourse({ name, slope_rating: slope, course_rating: rating }, token);
       await api.replaceCourseHoles(course.id, holes, token);
       setName("");
+      setHoleCount(18);
       setHoles(Array.from({ length: 18 }, (_, i) => blankHole(i)));
       await load();
     } catch (err) {
@@ -230,19 +243,20 @@ export function AdminCoursesPage() {
   };
 
   const applyCourseUpdate = (updated: CourseResponse) => {
+    const courseHoles = [...updated.holes]
+      .sort((a, b) => a.hole_number - b.hole_number)
+      .map((h) => ({
+        id: h.id,
+        hole_number: h.hole_number,
+        par: h.par,
+        stroke_index: h.stroke_index,
+        distance: h.distance,
+        image_url: h.image_url ?? null,
+      }));
+
     setCourses((cur) => cur.map((c) => (c.id === updated.id ? updated : c)));
-    setEditHoles(
-      [...updated.holes]
-        .sort((a, b) => a.hole_number - b.hole_number)
-        .map((h) => ({
-          id: h.id,
-          hole_number: h.hole_number,
-          par: h.par,
-          stroke_index: h.stroke_index,
-          distance: h.distance,
-          image_url: h.image_url ?? null,
-        })),
-    );
+    setEditHoleCount(courseHoles.length || 18);
+    setEditHoles(courseHoles);
   };
 
   const selectedCourse = courses.find((c) => c.id === selectedCourseId);
@@ -264,6 +278,20 @@ export function AdminCoursesPage() {
           <label className="field-label">
             Course rating (50–85)
             <input type="number" min={50} max={85} step={0.1} value={rating} onChange={(e) => setRating(Number(e.target.value))} />
+          </label>
+          <label className="field-label">
+            {t('courses.holeCount')}
+            <select
+              value={holeCount}
+              onChange={(event) => {
+                const nextCount = Number(event.target.value);
+                setHoleCount(nextCount);
+                setHoles((cur) => normalizeHoleRows(cur, nextCount));
+              }}
+            >
+              <option value={9}>{t('courses.nineHoles')}</option>
+              <option value={18}>{t('courses.eighteenHoles')}</option>
+            </select>
           </label>
           <HoleEditor holes={holes} setHoles={setHoles} />
           {createError && <p className="form-error">{createError}</p>}
@@ -305,6 +333,20 @@ export function AdminCoursesPage() {
             <label className="field-label">
               Course rating (50–85)
               <input type="number" min={50} max={85} step={0.1} value={editRating} onChange={(e) => setEditRating(Number(e.target.value))} />
+            </label>
+            <label className="field-label">
+              {t('courses.holeCount')}
+              <select
+                value={editHoleCount}
+                onChange={(event) => {
+                  const nextCount = Number(event.target.value);
+                  setEditHoleCount(nextCount);
+                  setEditHoles((cur) => normalizeHoleRows(cur, nextCount));
+                }}
+              >
+                <option value={9}>{t('courses.nineHoles')}</option>
+                <option value={18}>{t('courses.eighteenHoles')}</option>
+              </select>
             </label>
             <HoleEditor holes={editHoles} setHoles={setEditHoles} token={token} onCourseUpdate={applyCourseUpdate} />
             {editError && <p className="form-error">{editError}</p>}
