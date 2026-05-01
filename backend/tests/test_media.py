@@ -6,12 +6,39 @@ from fastapi import UploadFile
 from PIL import Image
 
 from app.core.config import get_settings
-from app.services.media import store_player_photo
+from app.services.media import store_player_photo, store_ui_background
 
 
 @pytest.mark.anyio("asyncio")
 async def test_store_player_photo_creates_expected_variants(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("MEDIA_ROOT", str(tmp_path))
+    get_settings.cache_clear()
+
+
+@pytest.mark.anyio("asyncio")
+async def test_store_ui_background_creates_local_webp(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("MEDIA_ROOT", str(tmp_path))
+    get_settings.cache_clear()
+
+    source = Image.new("RGB", (3200, 1800), "green")
+    image_bytes = BytesIO()
+    source.save(image_bytes, format="JPEG")
+    image_bytes.seek(0)
+
+    stored = await store_ui_background(
+        "login",
+        UploadFile(filename="background.jpg", file=image_bytes),
+    )
+
+    background_path = tmp_path / stored
+
+    assert stored == "appearance/login.webp"
+    assert background_path.is_file()
+    with Image.open(background_path) as background:
+        assert background.format == "WEBP"
+        assert background.width <= 2400
+        assert background.height <= 1600
+
     get_settings.cache_clear()
 
     source = Image.new("RGB", (640, 480), "white")

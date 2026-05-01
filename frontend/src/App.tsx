@@ -4,6 +4,7 @@ import { AppShell } from "./components/AppShell";
 import { useAuth } from "./lib/auth";
 import { AchievementsPage } from "./pages/AchievementsPage";
 import { AdminAchievementRulesPage } from "./pages/AdminAchievementRulesPage";
+import { AdminAppearancePage } from "./pages/AdminAppearancePage";
 import { AdminBonusRulesPage } from "./pages/AdminBonusRulesPage";
 import { AdminCoursesPage } from "./pages/AdminCoursesPage";
 import { AdminNotificationsPage } from "./pages/AdminNotificationsPage";
@@ -108,6 +109,14 @@ export default function App() {
           element={
             <RequireAdmin>
               <AdminNotificationsPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="admin/appearance"
+          element={
+            <RequireAdmin>
+              <AdminAppearancePage />
             </RequireAdmin>
           }
         />

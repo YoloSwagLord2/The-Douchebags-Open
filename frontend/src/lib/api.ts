@@ -1,6 +1,7 @@
 import type {
   AchievementEvent,
   AchievementRuleResponse,
+  AppearanceResponse,
   AuthResponse,
   BonusAward,
   BonusRuleResponse,
@@ -60,6 +61,23 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),
+  appearance: () => request<AppearanceResponse>("/catalog/appearance"),
+  adminAppearance: (token: string) => request<AppearanceResponse>("/admin/appearance", {}, token),
+  uploadAppearanceBackground: async (slot: "login" | "admin-hero", file: File, token: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await fetch(`${API_BASE}/admin/appearance/backgrounds/${slot}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!response.ok) {
+      throw new APIError(response.status, "Background upload failed");
+    }
+    return (await response.json()) as AppearanceResponse;
+  },
+  deleteAppearanceBackground: (slot: "login" | "admin-hero", token: string) =>
+    request<AppearanceResponse>(`/admin/appearance/backgrounds/${slot}`, { method: "DELETE" }, token),
   me: (token: string) => request<AuthResponse["user"]>("/auth/me", {}, token),
   navigation: (token: string) => request<NavigationTournament[]>("/catalog/navigation", {}, token),
   roundLeaderboard: (id: string, token: string) =>
@@ -161,4 +179,3 @@ export const api = {
       token,
     ),
 };
-

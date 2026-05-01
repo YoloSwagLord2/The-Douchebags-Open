@@ -100,3 +100,17 @@ async def store_hole_image(hole_id, upload: UploadFile) -> str:
     output_path = base_dir / "image.png"
     image.save(output_path, format="PNG", optimize=True)
     return str(output_path.relative_to(settings.media_root))
+
+
+async def store_ui_background(slot: str, upload: UploadFile) -> str:
+    settings = get_settings()
+    base_dir = settings.media_root / "appearance"
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    contents = await upload.read()
+    image = Image.open(BytesIO(contents)).convert("RGB")
+    image.thumbnail((2400, 1600), Image.Resampling.LANCZOS)
+
+    output_path = base_dir / f"{slot}.webp"
+    image.save(output_path, format="WEBP", quality=88)
+    return str(output_path.relative_to(settings.media_root))

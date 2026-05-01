@@ -83,6 +83,11 @@ class CourseResponse(APIModel):
     holes: list[HoleResponse]
 
 
+class AppearanceResponse(APIModel):
+    login_background_url: str | None = None
+    admin_hero_background_url: str | None = None
+
+
 class PlayerCreate(BaseModel):
     name: str
     username: str = Field(min_length=3, max_length=120)

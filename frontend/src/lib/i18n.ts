@@ -30,6 +30,7 @@ const translations = {
     'nav.bonuses': 'Bonuses',
     'nav.achievements': 'Achievements',
     'nav.notifications': 'Notifications',
+    'nav.appearance': 'Theme',
 
     // Player Management
     'players.eyebrow': 'Player setup',
@@ -72,6 +73,10 @@ const translations = {
     'courses.holeImageReplace': 'Replace image',
     'courses.holeImageRemove': 'Remove',
     'courses.holeImageSaveFirst': 'Save the course first to upload images',
+
+    // Appearance
+    'appearance.eyebrow': 'Appearance',
+    'appearance.title': 'Background images',
 
     // Tournaments / Events
     'tournaments.eyebrow': 'Event desk',
@@ -215,6 +220,7 @@ const translations = {
     'nav.bonuses': 'Bonussen',
     'nav.achievements': 'Prestaties',
     'nav.notifications': 'Meldingen',
+    'nav.appearance': 'Thema',
 
     // Player Management
     'players.eyebrow': 'Speler beheer',
@@ -257,6 +263,10 @@ const translations = {
     'courses.holeImageReplace': 'Afbeelding vervangen',
     'courses.holeImageRemove': 'Verwijderen',
     'courses.holeImageSaveFirst': 'Sla de baan eerst op om afbeeldingen te uploaden',
+
+    // Appearance
+    'appearance.eyebrow': 'Vormgeving',
+    'appearance.title': 'Achtergrondafbeeldingen',
 
     // Tournaments / Events
     'tournaments.eyebrow': 'Event beheer',

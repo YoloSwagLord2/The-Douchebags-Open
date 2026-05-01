@@ -76,6 +76,7 @@ export function AppShell() {
             <NavLink to="/leaderboard">{t('nav.board')}</NavLink>
             <NavLink to="/admin/bonus-rules">{t('nav.rules')}</NavLink>
             <NavLink to="/admin/notifications">{t('nav.inbox')}</NavLink>
+            <NavLink to="/admin/appearance">{t('nav.appearance')}</NavLink>
           </>
         ) : (
           <>

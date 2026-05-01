@@ -1,6 +1,7 @@
 from app.models.entities import (
     AchievementEvent,
     AchievementRule,
+    AppSetting,
     BonusAward,
     BonusRule,
     Course,
@@ -18,6 +19,7 @@ from app.models.entities import (
 __all__ = [
     "AchievementEvent",
     "AchievementRule",
+    "AppSetting",
     "BonusAward",
     "BonusRule",
     "Course",
@@ -31,4 +33,3 @@ __all__ = [
     "TournamentPlayer",
     "User",
 ]
-

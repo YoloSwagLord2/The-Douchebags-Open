@@ -6,9 +6,15 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.entities import Round, Tournament, TournamentPlayer, User
 from app.models.enums import UserRole
-from app.schemas.api import NavigationRound, NavigationTournament
+from app.schemas.api import AppearanceResponse, NavigationRound, NavigationTournament
+from app.services.appearance import get_appearance
 
 router = APIRouter(prefix="/catalog", tags=["catalog"])
+
+
+@router.get("/appearance", response_model=AppearanceResponse)
+def appearance(db: Session = Depends(get_db)) -> AppearanceResponse:
+    return get_appearance(db)
 
 
 @router.get("/navigation", response_model=list[NavigationTournament])

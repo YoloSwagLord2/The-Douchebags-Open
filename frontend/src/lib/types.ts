@@ -37,6 +37,11 @@ export interface NavigationTournament {
   rounds: NavigationRound[];
 }
 
+export interface AppearanceResponse {
+  login_background_url?: string | null;
+  admin_hero_background_url?: string | null;
+}
+
 export interface LeaderboardEntry {
   player_id: string;
   player_name: string;
@@ -300,4 +305,3 @@ export type RuleNode =
       operator: RuleOperator;
       value: string | number | Array<string | number>;
     };
-

@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.models.entities import (
     AchievementEvent,
     AchievementRule,
+    AppSetting,
     BonusAward,
     BonusRule,
     Course,
@@ -29,6 +30,7 @@ from app.schemas.api import (
     AchievementRuleCreate,
     AchievementRuleResponse,
     AchievementRuleUpdate,
+    AppearanceResponse,
     BonusRuleCreate,
     BonusRuleResponse,
     BonusRuleUpdate,
@@ -52,7 +54,8 @@ from app.schemas.api import (
 )
 from app.services.auth import hash_password
 from app.core.config import get_settings
-from app.services.media import store_hole_image, store_player_photo
+from app.services.appearance import BACKGROUND_SLOT_KEYS, get_appearance, upsert_setting
+from app.services.media import store_hole_image, store_player_photo, store_ui_background
 from app.services.notifications import create_notification
 from app.services.rules import validate_rule_definition
 from app.services.scoring import (
@@ -63,6 +66,48 @@ from app.services.scoring import (
 from app.utils.serializers import notification_response, player_response
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+@router.get("/appearance", response_model=AppearanceResponse)
+def appearance(_: User = Depends(require_admin), db: Session = Depends(get_db)) -> AppearanceResponse:
+    return get_appearance(db)
+
+
+@router.post("/appearance/backgrounds/{slot}", response_model=AppearanceResponse)
+async def upload_appearance_background(
+    slot: str,
+    file: UploadFile = File(...),
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AppearanceResponse:
+    key = BACKGROUND_SLOT_KEYS.get(slot)
+    if not key:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Background slot not found")
+    upsert_setting(db, key, await store_ui_background(slot, file))
+    db.commit()
+    return get_appearance(db)
+
+
+@router.delete("/appearance/backgrounds/{slot}", response_model=AppearanceResponse)
+def delete_appearance_background(
+    slot: str,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AppearanceResponse:
+    key = BACKGROUND_SLOT_KEYS.get(slot)
+    if not key:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Background slot not found")
+    setting = db.get(AppSetting, key)
+    if setting:
+        media_path = get_settings().media_root / setting.value
+        if media_path.exists():
+            try:
+                media_path.unlink()
+            except OSError:
+                pass
+        db.delete(setting)
+        db.commit()
+    return get_appearance(db)
 
 
 @router.get("/players", response_model=list[PlayerResponse])

@@ -90,6 +90,13 @@ class Hole(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         return f"/media/{self.image_path}" if self.image_path else None
 
 
+class AppSetting(TimestampMixin, Base):
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(120), primary_key=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+
+
 class Tournament(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "tournaments"
 

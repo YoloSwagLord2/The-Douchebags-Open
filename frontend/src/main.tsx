@@ -6,11 +6,13 @@ import { AuthProvider } from "./lib/auth";
 import { PopupProvider } from "./lib/popups";
 import { initLanguage } from "./lib/i18n";
 import { initTheme } from "./lib/theme";
+import { loadAppearance } from "./lib/appearance";
 import "./styles.css";
 
 // Initialize language on app startup
 initLanguage();
 initTheme();
+loadAppearance();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
