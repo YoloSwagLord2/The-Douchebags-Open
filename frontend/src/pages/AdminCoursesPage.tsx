@@ -291,12 +291,12 @@ export function AdminCoursesPage() {
             <input placeholder="e.g. Augusta National" value={name} onChange={(e) => setName(e.target.value)} />
           </label>
           <label className="field-label">
-            Slope rating (55–155)
-            <input type="number" min={55} max={155} value={slope} onChange={(e) => setSlope(Number(e.target.value))} />
+            {t('courses.slope')}
+            <input type="number" value={slope} onChange={(e) => setSlope(Number(e.target.value))} />
           </label>
           <label className="field-label">
-            Course rating (50–85)
-            <input type="number" min={50} max={85} step={0.1} value={rating} onChange={(e) => setRating(Number(e.target.value))} />
+            {t('courses.rating')}
+            <input type="number" step={0.1} value={rating} onChange={(e) => setRating(Number(e.target.value))} />
           </label>
           <label className="field-label">
             {t('courses.holeCount')}
@@ -346,12 +346,12 @@ export function AdminCoursesPage() {
               <input value={editName} onChange={(e) => setEditName(e.target.value)} />
             </label>
             <label className="field-label">
-              Slope rating (55–155)
-              <input type="number" min={55} max={155} value={editSlope} onChange={(e) => setEditSlope(Number(e.target.value))} />
+              {t('courses.slope')}
+              <input type="number" value={editSlope} onChange={(e) => setEditSlope(Number(e.target.value))} />
             </label>
             <label className="field-label">
-              Course rating (50–85)
-              <input type="number" min={50} max={85} step={0.1} value={editRating} onChange={(e) => setEditRating(Number(e.target.value))} />
+              {t('courses.rating')}
+              <input type="number" step={0.1} value={editRating} onChange={(e) => setEditRating(Number(e.target.value))} />
             </label>
             <label className="field-label">
               {t('courses.holeCount')}

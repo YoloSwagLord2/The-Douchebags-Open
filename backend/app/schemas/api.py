@@ -65,14 +65,14 @@ class HoleResponse(APIModel):
 
 class CourseCreate(BaseModel):
     name: str
-    slope_rating: int = Field(ge=55, le=155)
-    course_rating: float = Field(ge=50, le=85)
+    slope_rating: int
+    course_rating: float
 
 
 class CourseUpdate(BaseModel):
     name: str | None = None
-    slope_rating: int | None = Field(default=None, ge=55, le=155)
-    course_rating: float | None = Field(default=None, ge=50, le=85)
+    slope_rating: int | None = None
+    course_rating: float | None = None
 
 
 class CourseResponse(APIModel):
