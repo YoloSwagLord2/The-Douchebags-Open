@@ -429,7 +429,7 @@ export function parseErrorMessage(error: unknown): string {
     if (message.includes('email')) {
       return t('validation.invalidEmail');
     }
-    if (message.includes('password')) {
+    if (message.includes('password') && (message.includes('short') || message.includes('least') || message.includes('length'))) {
       return t('validation.passwordTooShort');
     }
     if (message.includes('credentials')) {
