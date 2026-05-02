@@ -476,6 +476,11 @@ button {
   color: var(--muted);
 }
 
+.hole-stage__meta--stack {
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
 .leaderboard-table {
   display: grid;
   gap: 0.75rem;

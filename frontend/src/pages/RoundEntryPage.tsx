@@ -99,7 +99,7 @@ export function RoundEntryPage() {
           ) : null}
           <div className="hole-stage__header">
             <h3>{t('score.hole')} {currentHole.hole_number}</h3>
-            <div className="hole-stage__meta">
+            <div className="hole-stage__meta hole-stage__meta--stack">
               <span>
                 {t('score.par')} {currentHole.par}
                 {currentHole.handicap_strokes > 0 && (
@@ -175,20 +175,20 @@ export function RoundEntryPage() {
 
       <section className="totals-strip">
         <div>
-          <span>{t('score.gross')}</span>
+          <span>Bruto</span>
           <strong>{totals?.gross_strokes ?? 0}</strong>
         </div>
         <div>
-          <span>{t('score.official')}</span>
+          <span>Netto</span>
+          <strong>{totals?.net_strokes ?? 0}</strong>
+        </div>
+        <div>
+          <span>Stableford</span>
           <strong>{totals?.official_stableford ?? 0}</strong>
         </div>
         <div>
-          <span>{t('score.bonus')}</span>
+          <span>Bonus</span>
           <strong>{totals?.bonus_points ?? 0}</strong>
-        </div>
-        <div>
-          <span>{t('score.adj')}</span>
-          <strong>{totals?.bonus_adjusted_stableford ?? 0}</strong>
         </div>
       </section>
     </div>
