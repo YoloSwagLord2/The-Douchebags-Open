@@ -175,19 +175,19 @@ export function RoundEntryPage() {
 
       <section className="totals-strip">
         <div>
-          <span>Bruto</span>
+          <span>{t('score.gross')}</span>
           <strong>{totals?.gross_strokes ?? 0}</strong>
         </div>
         <div>
-          <span>Netto</span>
+          <span>{t('score.net')}</span>
           <strong>{totals?.net_strokes ?? 0}</strong>
         </div>
         <div>
-          <span>Stableford</span>
+          <span>{t('score.stableford')}</span>
           <strong>{totals?.official_stableford ?? 0}</strong>
         </div>
         <div>
-          <span>Bonus</span>
+          <span>{t('score.bonus')}</span>
           <strong>{totals?.bonus_points ?? 0}</strong>
         </div>
       </section>

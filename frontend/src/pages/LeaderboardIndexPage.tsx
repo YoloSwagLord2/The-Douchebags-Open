@@ -29,7 +29,7 @@ function FeaturedLeader({ entry }: { entry?: LeaderboardEntry }) {
         <p className="eyebrow">Current leader</p>
         <h2>{entry.player_name}</h2>
         <div className="featured-leader__stats">
-          <span>Official {entry.official_stableford}</span>
+          <span>Stableford {entry.official_stableford}</span>
           <span>Bonus {entry.bonus_adjusted_stableford}</span>
           <span>Net {entry.net_strokes}</span>
         </div>
@@ -169,7 +169,7 @@ export function LeaderboardIndexPage() {
         <div>
           <p className="eyebrow">Tournament leaderboard</p>
           <h2>{overview?.tournament_name ?? selectedTournament?.name ?? "Leaderboard"}</h2>
-          <p className="hero-subtitle">Official standings and bonus-adjusted rankings.</p>
+          <p className="hero-subtitle">Official Stableford-based standings and bonus-adjusted rankings.</p>
         </div>
         <div className="segmented-control">
           <button
@@ -177,7 +177,7 @@ export function LeaderboardIndexPage() {
             onClick={() => setMode("official")}
             type="button"
           >
-            Official
+            Stableford
           </button>
           <button
             className={mode === "bonus" ? "is-active" : ""}

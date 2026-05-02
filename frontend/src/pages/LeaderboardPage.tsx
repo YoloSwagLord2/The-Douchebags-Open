@@ -34,7 +34,7 @@ function FeaturedLeader({ entry }: { entry?: LeaderboardEntry }) {
         <p className="eyebrow">Current number one</p>
         <h2>{entry.player_name}</h2>
         <div className="featured-leader__stats">
-          <span>Official {entry.official_stableford}</span>
+          <span>Stableford {entry.official_stableford}</span>
           <span>Bonus {entry.bonus_adjusted_stableford}</span>
           <span>Net {entry.net_strokes}</span>
         </div>
@@ -170,12 +170,12 @@ export function LeaderboardPage({ scope }: { scope: "round" | "tournament" }) {
           <p className="hero-subtitle">
             {scope === "round"
               ? `${currentRound ? displayRoundName(currentRound) : "Round —"} at ${navRound?.course_name ?? ""}`
-              : "Official standings and bonus-adjusted rankings."}
+              : "Official Stableford-based standings and bonus-adjusted rankings."}
           </p>
         </div>
         <div className="segmented-control">
           <button className={mode === "official" ? "is-active" : ""} onClick={() => setMode("official")} type="button">
-            Official
+            Stableford
           </button>
           <button className={mode === "bonus" ? "is-active" : ""} onClick={() => setMode("bonus")} type="button">
             Bonus

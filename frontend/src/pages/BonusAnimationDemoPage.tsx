@@ -84,7 +84,7 @@ function DemoScoreEntryScreen() {
           </div>
           <div className="bonus-demo__hole-meta">
             <span>Par 4</span>
-            <span>SI 9</span>
+            <span>S.I. 9</span>
             <span>374m</span>
           </div>
         </div>
@@ -108,7 +108,7 @@ function DemoScoreEntryScreen() {
           <strong>32</strong>
         </div>
         <div>
-          <span>Official</span>
+          <span>Stableford</span>
           <strong>15</strong>
         </div>
         <div>
