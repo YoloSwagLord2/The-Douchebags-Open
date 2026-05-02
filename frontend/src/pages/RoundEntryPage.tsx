@@ -100,7 +100,14 @@ export function RoundEntryPage() {
           <div className="hole-stage__header">
             <h3>{t('score.hole')} {currentHole.hole_number}</h3>
             <div className="hole-stage__meta">
-              <span>{t('score.par')} {currentHole.par}</span>
+              <span>
+                {t('score.par')} {currentHole.par}
+                {currentHole.handicap_strokes > 0 && (
+                  <sup style={{ color: "var(--gold)", marginLeft: "0.15em" }}>
+                    +{currentHole.handicap_strokes}
+                  </sup>
+                )}
+              </span>
               <span>{t('score.si')} {currentHole.stroke_index}</span>
               <span>{currentHole.distance}m</span>
             </div>

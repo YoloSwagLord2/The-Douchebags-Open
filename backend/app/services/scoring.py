@@ -82,10 +82,9 @@ def stableford_points(net_to_par: int) -> int:
 
 def handicap_strokes_by_hole(course: Course, player_hcp: float) -> dict[uuid.UUID, int]:
     ordered_holes = sorted(course.holes, key=lambda hole: hole.stroke_index)
-    hole_count = len(ordered_holes)
     playing_handicap = calculate_playing_handicap(player_hcp, course)
-    base = playing_handicap // hole_count if hole_count else 0
-    extra = playing_handicap % hole_count if hole_count else 0
+    base = playing_handicap // 18
+    extra = playing_handicap % 18
     allocation: dict[uuid.UUID, int] = {}
     for index, hole in enumerate(ordered_holes, start=1):
         allocation[hole.id] = base + (1 if index <= extra else 0)
