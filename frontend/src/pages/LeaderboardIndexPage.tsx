@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { t } from "../lib/i18n";
 import type {
   LeaderboardEntry,
   LeaderboardResponse,
@@ -26,12 +27,13 @@ function FeaturedLeader({ entry }: { entry?: LeaderboardEntry }) {
         )}
       </div>
       <div className="featured-leader__copy">
-        <p className="eyebrow">Current leader</p>
+        <p className="eyebrow">{t('leaderboard.currentLeader')}</p>
         <h2>{entry.player_name}</h2>
         <div className="featured-leader__stats">
-          <span>Stableford {entry.official_stableford}</span>
-          <span>Bonus {entry.bonus_adjusted_stableford}</span>
-          <span>Net {entry.net_strokes}</span>
+          <span>{t('leaderboard.gross')} {entry.gross_strokes}</span>
+          <span>{t('leaderboard.net')} {entry.net_strokes}</span>
+          <span>{t('leaderboard.official')} {entry.official_stableford}</span>
+          <span>{t('leaderboard.bonus')} {entry.bonus_points}</span>
         </div>
       </div>
     </section>
@@ -48,7 +50,7 @@ function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
       <section className="detail-panel">
         <p className="eyebrow">Scoreboard</p>
         <p style={{ margin: "0.5rem 0 0", color: "var(--text-muted, #8899aa)" }}>
-          No rounds have been set up for this tournament yet.
+          {t('leaderboard.noRoundsYet')}
         </p>
       </section>
     );
@@ -58,20 +60,20 @@ function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
       <section className="detail-panel">
         <p className="eyebrow">Scoreboard</p>
         <p style={{ margin: "0.5rem 0 0", color: "var(--text-muted, #8899aa)" }}>
-          No players have been assigned to this tournament yet.
+          {t('leaderboard.noPlayersYet')}
         </p>
       </section>
     );
   }
   return (
     <section className="detail-panel">
-      <p className="eyebrow">Scoreboard — Stableford points per round</p>
+      <p className="eyebrow">{t('leaderboard.scoreboardPerRound')}</p>
       <div style={{ overflowX: "auto" }}>
         <table className="round-matrix__table">
           <thead>
             <tr>
               <th style={{ textAlign: "left", paddingLeft: "0.25rem" }}>#</th>
-              <th className="round-matrix__player-col">Player</th>
+              <th className="round-matrix__player-col">{t('leaderboard.player')}</th>
               {overview.rounds.map((r) => (
                 <th key={r.id}>
                   {displayRoundName(r)}
@@ -79,7 +81,7 @@ function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
                   <small>{r.course_name}</small>
                 </th>
               ))}
-              <th>Total</th>
+              <th>{t('leaderboard.total')}</th>
             </tr>
           </thead>
           <tbody>
@@ -167,9 +169,9 @@ export function LeaderboardIndexPage() {
     <div className="stack-layout">
       <section className="masthead-panel">
         <div>
-          <p className="eyebrow">Tournament leaderboard</p>
+          <p className="eyebrow">{t('leaderboard.tournamentLeaderboard')}</p>
           <h2>{overview?.tournament_name ?? selectedTournament?.name ?? "Leaderboard"}</h2>
-          <p className="hero-subtitle">Official Stableford-based standings and bonus-adjusted rankings.</p>
+          <p className="hero-subtitle">{t('leaderboard.subtitle')}</p>
         </div>
         <div className="segmented-control">
           <button
@@ -191,9 +193,9 @@ export function LeaderboardIndexPage() {
 
       <section className="detail-panel">
         <label className="field-label">
-          Select event
+          {t('leaderboard.selectEvent')}
           <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
-            {navigation.length === 0 && <option value="">No tournaments configured yet</option>}
+            {navigation.length === 0 && <option value="">{t('leaderboard.noTournaments')}</option>}
             {navigation.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name} · {t.date}
@@ -206,12 +208,12 @@ export function LeaderboardIndexPage() {
       {!selectedId ? (
         <section className="detail-panel">
           <p style={{ margin: 0, color: "var(--text-muted, #8899aa)" }}>
-            Select a tournament above to view the leaderboard.
+            {t('leaderboard.selectToView')}
           </p>
         </section>
       ) : overviewLoading ? (
         <section className="detail-panel">
-          <p style={{ margin: 0, color: "var(--text-muted, #8899aa)" }}>Loading scoreboard…</p>
+          <p style={{ margin: 0, color: "var(--text-muted, #8899aa)" }}>{t('leaderboard.loading')}</p>
         </section>
       ) : overview ? (
         <>
@@ -226,7 +228,7 @@ export function LeaderboardIndexPage() {
       ) : (
         <section className="detail-panel">
           <p style={{ margin: 0, color: "var(--text-muted, #8899aa)" }}>
-            Could not load scoreboard data. Check that the backend is running.
+            {t('leaderboard.loadError')}
           </p>
         </section>
       )}

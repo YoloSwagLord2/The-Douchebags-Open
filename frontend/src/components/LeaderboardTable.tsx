@@ -1,3 +1,4 @@
+import { t } from "../lib/i18n";
 import type { LeaderboardEntry } from "../lib/types";
 
 interface Props {
@@ -15,9 +16,15 @@ function initials(name: string) {
 }
 
 export function LeaderboardTable({ entries, mode }: Props) {
+  const sorted = [...entries].sort((a, b) =>
+    mode === "official"
+      ? b.official_stableford - a.official_stableford
+      : b.bonus_adjusted_stableford - a.bonus_adjusted_stableford,
+  );
+
   return (
     <div className="leaderboard-table">
-      {entries.map((entry) => (
+      {sorted.map((entry) => (
         <article className="leaderboard-row" key={`${mode}-${entry.player_id}`}>
           <div className="leaderboard-row__position">
             {mode === "official" ? entry.official_position : entry.bonus_position}
@@ -30,28 +37,35 @@ export function LeaderboardTable({ entries, mode }: Props) {
             )}
             <div>
               <div className="leaderboard-row__name">{entry.player_name}</div>
-              <div className="leaderboard-row__meta">{entry.holes_played} holes logged</div>
+              <div className="leaderboard-row__meta">{entry.holes_played} {t('leaderboard.holesLogged')}</div>
             </div>
           </div>
           <div className="leaderboard-row__stat">
-            <span className="leaderboard-row__label">Gross</span>
+            <span className="leaderboard-row__label">{t('leaderboard.gross')}</span>
             <strong>{entry.gross_strokes}</strong>
           </div>
           <div className="leaderboard-row__stat">
-            <span className="leaderboard-row__label">Net</span>
+            <span className="leaderboard-row__label">{t('leaderboard.net')}</span>
             <strong>{entry.net_strokes}</strong>
           </div>
-          <div className="leaderboard-row__stat leaderboard-row__stat--primary">
-            <span className="leaderboard-row__label">
-              {mode === "official" ? "Stableford" : "Bonus adj."}
-            </span>
-            <strong>
-              {mode === "official" ? entry.official_stableford : entry.bonus_adjusted_stableford}
-            </strong>
+          <div className={`leaderboard-row__stat${mode === "official" ? " leaderboard-row__stat--primary" : ""}`}>
+            <span className="leaderboard-row__label">{t('leaderboard.official')}</span>
+            <strong>{entry.official_stableford}</strong>
           </div>
+          {mode === "bonus" && (
+            <>
+              <div className="leaderboard-row__stat">
+                <span className="leaderboard-row__label">{t('leaderboard.bonus')}</span>
+                <strong>{entry.bonus_points}</strong>
+              </div>
+              <div className="leaderboard-row__stat leaderboard-row__stat--primary">
+                <span className="leaderboard-row__label">{t('leaderboard.bonusAdj')}</span>
+                <strong>{entry.bonus_adjusted_stableford}</strong>
+              </div>
+            </>
+          )}
         </article>
       ))}
     </div>
   );
 }
-
