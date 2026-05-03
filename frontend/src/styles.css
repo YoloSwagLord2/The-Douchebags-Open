@@ -148,6 +148,15 @@ button {
 .brand-logo--bar {
   height: 3.4rem;
   margin-right: auto;
+  flex-shrink: 0;
+}
+
+.player-bar .language-switcher select,
+.player-bar .theme-switcher,
+.player-bar .button-ghost {
+  min-height: 32px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.78rem;
 }
 
 :root[data-theme="light"] .brand-logo {
@@ -212,6 +221,7 @@ button {
 
 .page-shell {
   flex: 1 0 auto;
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
 }
 
 .stack-layout,
@@ -224,7 +234,6 @@ button {
 .detail-panel,
 .featured-leader,
 .hole-stage,
-.totals-strip,
 .leaderboard-row {
   min-width: 0;
   border: 1px solid var(--border);
@@ -351,11 +360,22 @@ button {
   flex: 1 1 12rem;
 }
 
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
 .stack-form input,
 .stack-form select,
 .stack-form textarea,
 .rule-predicate input,
-.rule-predicate select {
+.rule-predicate select,
+.field-label select {
   width: 100%;
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -401,12 +421,11 @@ button {
 }
 
 .bottom-nav {
-  position: relative;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
-  width: 100%;
-  max-width: 100dvw;
-  flex: 0 0 auto;
-  margin-top: auto;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 0.45rem;
@@ -422,7 +441,7 @@ button {
 }
 
 .bottom-nav--player {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .bottom-nav a,
@@ -666,6 +685,67 @@ button {
   color: var(--text);
   text-align: center;
   font-size: 1.25rem;
+}
+
+.totals-card {
+  border: 1px solid var(--border);
+  background: var(--panel-bg);
+  box-shadow: var(--shadow);
+  border-radius: 1.2rem;
+  overflow: hidden;
+}
+
+.scorecard-summary {
+  overflow-x: auto;
+  max-width: 100%;
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 0;
+}
+
+.scorecard-table {
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  width: max-content;
+}
+
+.scorecard-table th,
+.scorecard-table td {
+  text-align: center;
+  padding: 0.28rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+  min-width: 1.8rem;
+}
+
+.scorecard-table thead tr:last-child th,
+.scorecard-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.scorecard-table th {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.scorecard-table__label {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--panel-bg);
+  text-align: left !important;
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+
+.scorecard-table__col--active {
+  background: rgba(255, 107, 157, 0.1);
+  color: var(--gold);
+  font-weight: 700;
 }
 
 .totals-strip {
@@ -1474,6 +1554,10 @@ button {
     padding: 0.75rem;
   }
 
+  .page-shell {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+
   .score-entry-layout {
     gap: 0.6rem;
   }
@@ -1521,13 +1605,12 @@ button {
     padding: 0.55rem 0.45rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
   }
 
-  .bottom-nav--admin,
-  .bottom-nav--player {
+  .bottom-nav--admin {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .bottom-nav--player {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .bottom-nav a,

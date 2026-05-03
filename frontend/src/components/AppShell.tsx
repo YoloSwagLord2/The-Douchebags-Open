@@ -56,7 +56,7 @@ export function AppShell() {
         <div className="player-bar">
           <img className="brand-logo brand-logo--bar" src="/logo.svg" alt={t('app.title')} />
           <div className="app-controls">
-            <LanguageSwitcher />
+            <LanguageSwitcher compact />
             <ThemeSwitcher />
           </div>
           <button className="button-ghost" onClick={logout} type="button">{t('app.signOut')}</button>
@@ -83,7 +83,6 @@ export function AppShell() {
             <NavLink to="/leaderboard">{t('nav.board')}</NavLink>
             <NavLink to="/score">{t('nav.scores')}</NavLink>
             <NavLink to="/me/bonuses">{t('nav.bonuses')}</NavLink>
-            <NavLink to="/me/achievements">{t('nav.achievements')}</NavLink>
             <NavLink to="/notifications">
               {t('nav.inbox')}
               {unreadCount ? <span className="badge">{unreadCount}</span> : null}

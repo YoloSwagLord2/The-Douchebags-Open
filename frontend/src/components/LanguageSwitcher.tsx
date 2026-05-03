@@ -5,10 +5,11 @@ let currentLang = getLanguage();
 
 type LanguageSwitcherProps = {
   className?: string;
+  compact?: boolean;
   onLanguageChange?: (lang: Language) => void;
 };
 
-export function LanguageSwitcher({ className = "", onLanguageChange }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ className = "", compact = false, onLanguageChange }: LanguageSwitcherProps) {
   const [language, setCurrentLanguage] = useState<Language>(currentLang);
 
   const handleChange = useCallback((newLang: Language) => {
@@ -25,8 +26,8 @@ export function LanguageSwitcher({ className = "", onLanguageChange }: LanguageS
         value={language}
         onChange={(e) => handleChange(e.target.value as Language)}
       >
-        <option value="en">English</option>
-        <option value="nl">Nederlands</option>
+        <option value="en">{compact ? "EN" : "English"}</option>
+        <option value="nl">{compact ? "NL" : "Nederlands"}</option>
       </select>
     </div>
   );

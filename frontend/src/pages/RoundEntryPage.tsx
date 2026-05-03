@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -13,9 +13,11 @@ export function RoundEntryPage() {
   const [scorecard, setScorecard] = useState<ScorecardResponse | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [draftStroke, setDraftStroke] = useState<number>(4);
+  const [draftTouched, setDraftTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isHoleImageOpen, setIsHoleImageOpen] = useState(false);
+  const scorecardScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!token || !roundId) return;
@@ -33,7 +35,15 @@ export function RoundEntryPage() {
   useEffect(() => {
     if (!hole) return;
     setDraftStroke(hole.strokes ?? Math.max(1, hole.par));
+    setDraftTouched(hole.strokes != null);
   }, [hole?.hole_id]);
+
+  useEffect(() => {
+    const container = scorecardScrollRef.current;
+    if (!container) return;
+    const active = container.querySelector<HTMLElement>(".scorecard-table__col--active");
+    if (active) active.scrollIntoView({ inline: "nearest", behavior: "smooth", block: "nearest" });
+  }, [currentIndex]);
 
   const saveCurrentHole = async () => {
     if (!token || !roundId || !hole) return;
@@ -112,18 +122,25 @@ export function RoundEntryPage() {
               <span>{currentHole.distance}m</span>
             </div>
           </div>
-          <div className="stroke-display">{draftStroke}</div>
+          <div className="stroke-display">{draftTouched ? draftStroke : "?"}</div>
           <div className="stroke-controls">
-            <button type="button" onClick={() => setDraftStroke((value) => Math.max(1, value - 1))}>
+            <button type="button" onClick={() => {
+              if (!draftTouched) { setDraftTouched(true); setDraftStroke(currentHole.par); }
+              else setDraftStroke((v) => Math.max(1, v - 1));
+            }}>
               -
             </button>
             <input
               inputMode="numeric"
               type="number"
-              value={draftStroke}
-              onChange={(event) => setDraftStroke(Number(event.target.value))}
+              value={draftTouched ? draftStroke : ""}
+              placeholder={String(currentHole.par)}
+              onChange={(event) => { setDraftTouched(true); setDraftStroke(Number(event.target.value)); }}
             />
-            <button type="button" onClick={() => setDraftStroke((value) => value + 1)}>
+            <button type="button" onClick={() => {
+              if (!draftTouched) { setDraftTouched(true); setDraftStroke(currentHole.par); }
+              else setDraftStroke((v) => v + 1);
+            }}>
               +
             </button>
           </div>
@@ -173,23 +190,66 @@ export function RoundEntryPage() {
         </div>
       ) : null}
 
-      <section className="totals-strip">
-        <div>
-          <span>{t('score.gross')}</span>
-          <strong>{totals?.gross_strokes ?? 0}</strong>
+      <section className="totals-card">
+        <div className="totals-strip">
+          <div>
+            <span>{t('score.gross')}</span>
+            <strong>{totals?.gross_strokes ?? 0}</strong>
+          </div>
+          <div>
+            <span>{t('score.net')}</span>
+            <strong>{totals?.net_strokes ?? 0}</strong>
+          </div>
+          <div>
+            <span>{t('score.stableford')}</span>
+            <strong>{totals?.official_stableford ?? 0}</strong>
+          </div>
+          <div>
+            <span>{t('score.bonus')}</span>
+            <strong>{totals?.bonus_points ?? 0}</strong>
+          </div>
         </div>
-        <div>
-          <span>{t('score.net')}</span>
-          <strong>{totals?.net_strokes ?? 0}</strong>
-        </div>
-        <div>
-          <span>{t('score.stableford')}</span>
-          <strong>{totals?.official_stableford ?? 0}</strong>
-        </div>
-        <div>
-          <span>{t('score.bonus')}</span>
-          <strong>{totals?.bonus_points ?? 0}</strong>
-        </div>
+        {scorecard && (() => {
+          const sorted = [...scorecard.holes].sort((a, b) => a.hole_number - b.hole_number);
+          return (
+            <div className="scorecard-summary" ref={scorecardScrollRef}>
+              <table className="scorecard-table">
+                <thead>
+                  <tr>
+                    <th className="scorecard-table__label"></th>
+                    {sorted.map((h, i) => (
+                      <th key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>
+                        {h.hole_number}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="scorecard-table__label">{t('score.par')}</td>
+                    {sorted.map((h, i) => (
+                      <td key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>{h.par}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td className="scorecard-table__label">{t('score.scoreLabel')}</td>
+                    {sorted.map((h, i) => (
+                      <td key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>
+                        {h.strokes ?? "?"}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td className="scorecard-table__label">{t('score.stb')}</td>
+                    {sorted.map((h, i) => (
+                      <td key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>{h.stableford_points ?? "—"}</td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </section>
     </div>
   );
