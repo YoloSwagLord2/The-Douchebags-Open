@@ -161,7 +161,24 @@ export function GalleryPage() {
       <section className="gallery-grid">
         {items.map((item) => (
           <button className="gallery-tile" key={item.id} type="button" onClick={() => setSelected(item)}>
-            <img src={item.thumbnail_url || item.display_url} alt={item.caption || `${t("gallery.itemBy")} ${item.uploader.name}`} />
+            {item.media_type === "video" ? (
+              <video
+                className="gallery-tile__media"
+                autoPlay
+                loop
+                muted
+                playsInline
+                poster={item.thumbnail_url || undefined}
+                preload="metadata"
+                src={item.display_url}
+              />
+            ) : (
+              <img
+                className="gallery-tile__media"
+                src={item.thumbnail_url || item.display_url}
+                alt={item.caption || `${t("gallery.itemBy")} ${item.uploader.name}`}
+              />
+            )}
             <span className="gallery-tile__shade" />
             <span className="gallery-tile__meta">
               <strong>{item.uploader.name}</strong>
