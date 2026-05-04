@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from app.models.enums import (
     AchievementIconPreset,
     BonusAnimationPreset,
+    GalleryMediaType,
     NotificationPriority,
     NotificationType,
     RoundStatus,
@@ -450,3 +451,50 @@ class AchievementEventResponse(APIModel):
     icon_snapshot: AchievementIconPreset
     triggered_at: dt.datetime
     revoked_at: dt.datetime | None
+
+
+class GalleryAuthorResponse(APIModel):
+    id: uuid.UUID
+    name: str
+    photo_avatar_url: str | None = None
+
+
+class GalleryMediaResponse(APIModel):
+    id: uuid.UUID
+    uploader: GalleryAuthorResponse
+    round_id: uuid.UUID
+    tournament_id: uuid.UUID
+    tournament_name: str
+    round_name: str | None = None
+    round_number: int
+    hole_id: uuid.UUID | None = None
+    hole_number: int | None = None
+    media_type: GalleryMediaType
+    display_url: str
+    thumbnail_url: str | None = None
+    caption: str | None = None
+    duration_seconds: int | None = None
+    size_bytes: int
+    like_count: int
+    comment_count: int
+    liked_by_me: bool
+    created_at: dt.datetime
+
+
+class GalleryMediaPage(APIModel):
+    items: list[GalleryMediaResponse]
+    total: int
+    limit: int
+    offset: int
+
+
+class GalleryCommentCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=500)
+
+
+class GalleryCommentResponse(APIModel):
+    id: uuid.UUID
+    media_id: uuid.UUID
+    author: GalleryAuthorResponse
+    body: str
+    created_at: dt.datetime

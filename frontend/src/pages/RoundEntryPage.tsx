@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import { GalleryUploadModal } from "../components/GalleryUploadModal";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { usePopups } from "../lib/popups";
@@ -17,6 +18,7 @@ export function RoundEntryPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isHoleImageOpen, setIsHoleImageOpen] = useState(false);
+  const [isGalleryUploadOpen, setIsGalleryUploadOpen] = useState(false);
   const scorecardScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -148,6 +150,13 @@ export function RoundEntryPage() {
           <div className="hole-stage__footer">
             <button
               type="button"
+              className="button-secondary"
+              onClick={() => setIsGalleryUploadOpen(true)}
+            >
+              Add media
+            </button>
+            <button
+              type="button"
               className="button-ghost"
               onClick={() => setCurrentIndex((value) => Math.max(0, value - 1))}
               disabled={!hasPreviousHole}
@@ -188,6 +197,18 @@ export function RoundEntryPage() {
             alt={`Hole ${currentHole.hole_number}`}
           />
         </div>
+      ) : null}
+
+      {scorecard && roundId && token ? (
+        <GalleryUploadModal
+          open={isGalleryUploadOpen}
+          onClose={() => setIsGalleryUploadOpen(false)}
+          token={token}
+          roundId={roundId}
+          holes={scorecard.holes}
+          defaultHoleId={currentHole?.hole_id}
+          onUploaded={() => undefined}
+        />
       ) : null}
 
       <section className="totals-card">

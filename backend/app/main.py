@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import admin, auth, catalog, health, leaderboards, notifications, player
+from app.api.routes import admin, auth, catalog, gallery, health, leaderboards, notifications, player
 from app.core.config import get_settings
 
 
@@ -27,6 +27,8 @@ app.include_router(catalog.router, prefix=settings.api_prefix)
 app.include_router(leaderboards.router, prefix=settings.api_prefix)
 app.include_router(notifications.router, prefix=settings.api_prefix)
 app.include_router(player.router, prefix=settings.api_prefix)
+app.include_router(gallery.router, prefix=settings.api_prefix)
+app.include_router(gallery.admin_router, prefix=settings.api_prefix)
 app.include_router(admin.router, prefix=settings.api_prefix)
 app.mount("/media", StaticFiles(directory=Path(settings.media_root)), name="media")
 

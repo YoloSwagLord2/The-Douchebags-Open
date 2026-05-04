@@ -33,9 +33,16 @@ Unraid's current documentation says Docker Compose is not natively supported, so
   - `SEED_ADMIN_PASSWORD`
   - `MEDIA_ROOT=/app/uploads`
 - Volume:
-  - `/mnt/user/appdata/douchebags-open/uploads` -> `/app/uploads`
+  - `/mnt/user/media/douchebags-open/uploads` -> `/app/uploads`
 
 The container serves the React SPA at `/` and the JSON API at `/api/*`. Uploaded media is served at `/media/*`.
+
+Store the app container/image on the NVMe-backed appdata path for runtime speed, but map `/app/uploads` to array storage where capacity is larger. In Docker Compose this is controlled by `MEDIA_HOST_PATH`, for example:
+
+```env
+MEDIA_ROOT=/app/uploads
+MEDIA_HOST_PATH=/mnt/user/media/douchebags-open/uploads
+```
 
 `DATABASE_URL` must use the exact same values as the Postgres container's `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB`. For example, if Postgres has `POSTGRES_USER=douchebags`, `POSTGRES_PASSWORD=change-me`, and `POSTGRES_DB=douchebags_open`, set the app to `DATABASE_URL=postgresql+psycopg://douchebags:change-me@postgres:5432/douchebags_open`.
 

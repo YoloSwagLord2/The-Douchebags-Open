@@ -5,6 +5,7 @@ export type NotificationType = "admin_message" | "achievement" | "bonus" | "syst
 export type NotificationPriority = "low" | "normal" | "high";
 export type BonusAnimationPreset = "confetti" | "fireworks" | "spotlight" | "chaos";
 export type AchievementIconPreset = "star" | "ace" | "flame" | "trophy";
+export type GalleryMediaType = "photo" | "video";
 
 export interface UserSummary {
   id: string;
@@ -163,6 +164,49 @@ export interface AchievementEvent {
   icon_snapshot: AchievementIconPreset;
   triggered_at: string;
   revoked_at?: string | null;
+}
+
+export interface GalleryAuthor {
+  id: string;
+  name: string;
+  photo_avatar_url?: string | null;
+}
+
+export interface GalleryMedia {
+  id: string;
+  uploader: GalleryAuthor;
+  round_id: string;
+  tournament_id: string;
+  tournament_name: string;
+  round_name?: string | null;
+  round_number: number;
+  hole_id?: string | null;
+  hole_number?: number | null;
+  media_type: GalleryMediaType;
+  display_url: string;
+  thumbnail_url?: string | null;
+  caption?: string | null;
+  duration_seconds?: number | null;
+  size_bytes: number;
+  like_count: number;
+  comment_count: number;
+  liked_by_me: boolean;
+  created_at: string;
+}
+
+export interface GalleryMediaPage {
+  items: GalleryMedia[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface GalleryComment {
+  id: string;
+  media_id: string;
+  author: GalleryAuthor;
+  body: string;
+  created_at: string;
 }
 
 export interface NotificationResponse {

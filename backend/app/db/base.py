@@ -5,6 +5,9 @@ from app.models.entities import (
     BonusAward,
     BonusRule,
     Course,
+    GalleryMedia,
+    GalleryMediaComment,
+    GalleryMediaLike,
     Hole,
     Notification,
     NotificationRecipient,
@@ -23,6 +26,9 @@ __all__ = [
     "BonusAward",
     "BonusRule",
     "Course",
+    "GalleryMedia",
+    "GalleryMediaComment",
+    "GalleryMediaLike",
     "Hole",
     "Notification",
     "NotificationRecipient",
@@ -33,4 +39,3 @@ __all__ = [
     "TournamentPlayer",
     "User",
 ]
-

@@ -13,6 +13,7 @@ import { AdminRoundsPage } from "./pages/AdminRoundsPage";
 import { AdminTournamentsPage } from "./pages/AdminTournamentsPage";
 import { BonusAnimationDemoPage } from "./pages/BonusAnimationDemoPage";
 import { BonusesPage } from "./pages/BonusesPage";
+import { GalleryPage } from "./pages/GalleryPage";
 import { HomePage } from "./pages/HomePage";
 import { LeaderboardIndexPage } from "./pages/LeaderboardIndexPage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="leaderboard/tournament/:tournamentId" element={<LeaderboardPage scope="tournament" />} />
         <Route path="leaderboard/round/:roundId" element={<LeaderboardPage scope="round" />} />
         <Route path="score" element={<ScorePage />} />
+        <Route path="gallery" element={<GalleryPage />} />
         <Route path="round/:roundId/entry" element={<RoundEntryPage />} />
         <Route path="me/bonuses" element={<BonusesPage />} />
         <Route path="me/achievements" element={<AchievementsPage />} />

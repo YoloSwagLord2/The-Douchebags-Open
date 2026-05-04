@@ -6,6 +6,9 @@ import type {
   BonusAward,
   BonusRuleResponse,
   CourseResponse,
+  GalleryComment,
+  GalleryMedia,
+  GalleryMediaPage,
   LeaderboardResponse,
   NavigationTournament,
   NotificationResponse,
@@ -91,6 +94,52 @@ export const api = {
       { method: "PUT", body: JSON.stringify({ scores }) },
       token,
     ),
+  galleryMedia: (token: string, filters: Record<string, string | number | undefined> = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== "") params.set(key, String(value));
+    });
+    const query = params.toString();
+    return request<GalleryMediaPage>(`/gallery/media${query ? `?${query}` : ""}`, {}, token);
+  },
+  uploadGalleryMedia: async (
+    roundId: string,
+    payload: { file: File; holeId?: string; caption?: string },
+    token: string,
+  ) => {
+    const formData = new FormData();
+    formData.append("file", payload.file);
+    if (payload.holeId) formData.append("hole_id", payload.holeId);
+    if (payload.caption) formData.append("caption", payload.caption);
+    const response = await fetch(`${API_BASE}/rounds/${roundId}/gallery/media`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!response.ok) {
+      let message = "Media upload failed";
+      try {
+        const data = await response.json();
+        message = data.detail ?? message;
+      } catch {
+        // Keep default message.
+      }
+      throw new APIError(response.status, message);
+    }
+    return (await response.json()) as GalleryMedia;
+  },
+  likeGalleryMedia: (id: string, token: string) =>
+    request<GalleryMedia>(`/gallery/media/${id}/like`, { method: "POST" }, token),
+  unlikeGalleryMedia: (id: string, token: string) =>
+    request<GalleryMedia>(`/gallery/media/${id}/like`, { method: "DELETE" }, token),
+  galleryComments: (id: string, token: string) =>
+    request<GalleryComment[]>(`/gallery/media/${id}/comments`, {}, token),
+  createGalleryComment: (id: string, body: string, token: string) =>
+    request<GalleryComment>(`/gallery/media/${id}/comments`, { method: "POST", body: JSON.stringify({ body }) }, token),
+  deleteAdminGalleryMedia: (id: string, token: string) =>
+    request<{ status: string }>(`/admin/gallery/media/${id}`, { method: "DELETE" }, token),
+  deleteAdminGalleryComment: (id: string, token: string) =>
+    request<{ status: string }>(`/admin/gallery/comments/${id}`, { method: "DELETE" }, token),
   myBonusAwards: (token: string) => request<BonusAward[]>("/players/me/bonus-awards", {}, token),
   myAchievements: (token: string) => request<AchievementEvent[]>("/players/me/achievements", {}, token),
   notifications: (token: string) => request<NotificationResponse[]>("/notifications", {}, token),

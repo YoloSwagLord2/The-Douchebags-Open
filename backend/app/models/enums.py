@@ -55,3 +55,7 @@ class NotificationPriority(StrEnum):
     NORMAL = "normal"
     HIGH = "high"
 
+
+class GalleryMediaType(StrEnum):
+    PHOTO = "photo"
+    VIDEO = "video"

@@ -22,6 +22,7 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.enums import (
     AchievementIconPreset,
     BonusAnimationPreset,
+    GalleryMediaType,
     NotificationPriority,
     NotificationSourceType,
     NotificationType,
@@ -52,6 +53,13 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     scores: Mapped[list["Score"]] = relationship(back_populates="player", foreign_keys="Score.player_id")
     roster_entries: Mapped[list["TournamentPlayer"]] = relationship(back_populates="player")
+    gallery_media: Mapped[list["GalleryMedia"]] = relationship(
+        back_populates="uploader", foreign_keys="GalleryMedia.uploader_user_id"
+    )
+    gallery_likes: Mapped[list["GalleryMediaLike"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    gallery_comments: Mapped[list["GalleryMediaComment"]] = relationship(
+        back_populates="user", foreign_keys="GalleryMediaComment.user_id"
+    )
 
     __table_args__ = (CheckConstraint("hcp >= 0", name="hcp_nonnegative"),)
 
@@ -128,6 +136,7 @@ class Round(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     course: Mapped["Course"] = relationship(back_populates="rounds")
     players: Mapped[list["RoundPlayer"]] = relationship(back_populates="round", cascade="all, delete-orphan")
     scores: Mapped[list["Score"]] = relationship(back_populates="round", cascade="all, delete-orphan")
+    gallery_media: Mapped[list["GalleryMedia"]] = relationship(back_populates="round", cascade="all, delete-orphan")
 
     __table_args__ = (UniqueConstraint("tournament_id", "round_number", name="uq_rounds_tournament_round_number"),)
 
@@ -340,3 +349,53 @@ class NotificationRecipient(UUIDPrimaryKeyMixin, Base):
     notification: Mapped["Notification"] = relationship(back_populates="recipients")
 
     __table_args__ = (UniqueConstraint("notification_id", "user_id", name="uq_notification_recipient_pair"),)
+
+
+class GalleryMedia(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "gallery_media"
+
+    uploader_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    round_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("rounds.id", ondelete="CASCADE"))
+    hole_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("holes.id"))
+    media_type: Mapped[GalleryMediaType] = mapped_column(enum_column(GalleryMediaType, "gallery_media_type"), nullable=False)
+    original_path: Mapped[str] = mapped_column(String(255), nullable=False)
+    display_path: Mapped[str] = mapped_column(String(255), nullable=False)
+    thumbnail_path: Mapped[str | None] = mapped_column(String(255))
+    caption: Mapped[str | None] = mapped_column(String(280))
+    duration_seconds: Mapped[int | None] = mapped_column(Integer)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+    uploader: Mapped["User"] = relationship(back_populates="gallery_media", foreign_keys=[uploader_user_id])
+    round: Mapped["Round"] = relationship(back_populates="gallery_media")
+    hole: Mapped["Hole"] = relationship()
+    likes: Mapped[list["GalleryMediaLike"]] = relationship(back_populates="media", cascade="all, delete-orphan")
+    comments: Mapped[list["GalleryMediaComment"]] = relationship(back_populates="media", cascade="all, delete-orphan")
+
+
+class GalleryMediaLike(UUIDPrimaryKeyMixin, Base):
+    __tablename__ = "gallery_media_likes"
+
+    media_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("gallery_media.id", ondelete="CASCADE"))
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    media: Mapped["GalleryMedia"] = relationship(back_populates="likes")
+    user: Mapped["User"] = relationship(back_populates="gallery_likes")
+
+    __table_args__ = (UniqueConstraint("media_id", "user_id", name="uq_gallery_media_likes_pair"),)
+
+
+class GalleryMediaComment(UUIDPrimaryKeyMixin, Base):
+    __tablename__ = "gallery_media_comments"
+
+    media_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("gallery_media.id", ondelete="CASCADE"))
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+    media: Mapped["GalleryMedia"] = relationship(back_populates="comments")
+    user: Mapped["User"] = relationship(back_populates="gallery_comments", foreign_keys=[user_id])

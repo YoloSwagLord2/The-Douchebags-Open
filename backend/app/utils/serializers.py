@@ -1,9 +1,12 @@
-from app.models.entities import AchievementEvent, BonusAward, Notification, User
+from app.models.entities import AchievementEvent, BonusAward, GalleryMedia, GalleryMediaComment, Notification, User
 from app.schemas.api import (
     AchievementEventResponse,
     AchievementPopupResponse,
     BonusAwardResponse,
     BonusUnlockResponse,
+    GalleryAuthorResponse,
+    GalleryCommentResponse,
+    GalleryMediaResponse,
     NotificationPopupResponse,
     NotificationRecipientResponse,
     NotificationResponse,
@@ -25,6 +28,14 @@ def user_summary(user: User) -> UserSummary:
         hcp=float(user.hcp),
         photo_avatar_url=media_url(user.photo_avatar_path),
         photo_feature_url=media_url(user.photo_feature_path),
+    )
+
+
+def gallery_author_response(user: User) -> GalleryAuthorResponse:
+    return GalleryAuthorResponse(
+        id=user.id,
+        name=user.name,
+        photo_avatar_url=media_url(user.photo_avatar_path),
     )
 
 
@@ -116,3 +127,43 @@ def notification_response(notification: Notification, recipient) -> Notification
         ),
     )
 
+
+def gallery_media_response(
+    media: GalleryMedia,
+    *,
+    like_count: int,
+    comment_count: int,
+    liked_by_me: bool,
+) -> GalleryMediaResponse:
+    round_name = media.round.name or f"Round {media.round.round_number}"
+    return GalleryMediaResponse(
+        id=media.id,
+        uploader=gallery_author_response(media.uploader),
+        round_id=media.round_id,
+        tournament_id=media.round.tournament_id,
+        tournament_name=media.round.tournament.name,
+        round_name=round_name,
+        round_number=media.round.round_number,
+        hole_id=media.hole_id,
+        hole_number=media.hole.hole_number if media.hole else None,
+        media_type=media.media_type,
+        display_url=media_url(media.display_path) or "",
+        thumbnail_url=media_url(media.thumbnail_path),
+        caption=media.caption,
+        duration_seconds=media.duration_seconds,
+        size_bytes=media.size_bytes,
+        like_count=like_count,
+        comment_count=comment_count,
+        liked_by_me=liked_by_me,
+        created_at=media.created_at,
+    )
+
+
+def gallery_comment_response(comment: GalleryMediaComment) -> GalleryCommentResponse:
+    return GalleryCommentResponse(
+        id=comment.id,
+        media_id=comment.media_id,
+        author=gallery_author_response(comment.user),
+        body=comment.body,
+        created_at=comment.created_at,
+    )
