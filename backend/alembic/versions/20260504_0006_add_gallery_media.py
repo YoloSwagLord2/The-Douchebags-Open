@@ -39,7 +39,7 @@ def upgrade() -> None:
             sa.Column("uploader_user_id", postgresql.UUID(as_uuid=True), nullable=False),
             sa.Column("round_id", postgresql.UUID(as_uuid=True), nullable=False),
             sa.Column("hole_id", postgresql.UUID(as_uuid=True), nullable=True),
-            sa.Column("media_type", sa.Enum("photo", "video", name="gallery_media_type", create_type=False), nullable=False),
+            sa.Column("media_type", postgresql.ENUM("photo", "video", name="gallery_media_type", create_type=False), nullable=False),
             sa.Column("original_path", sa.String(255), nullable=False),
             sa.Column("display_path", sa.String(255), nullable=False),
             sa.Column("thumbnail_path", sa.String(255), nullable=True),
