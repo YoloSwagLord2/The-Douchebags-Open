@@ -1,9 +1,11 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import { CameraIcon } from "../components/CameraIcon";
 import { GalleryUploadModal } from "../components/GalleryUploadModal";
 import { Modal } from "../components/Modal";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { t } from "../lib/i18n";
 import type { GalleryComment, GalleryMedia, GalleryMediaType, HoleScorecardResponse, NavigationTournament } from "../lib/types";
 
 function formatDuration(seconds?: number | null) {
@@ -46,7 +48,7 @@ export function GalleryPage() {
       });
       setItems(response.items);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load gallery");
+      setError(err instanceof Error ? err.message : t("gallery.loadError"));
     } finally {
       setLoading(false);
     }
@@ -114,54 +116,60 @@ export function GalleryPage() {
     <div className="stack-layout gallery-page">
       <section className="masthead-panel gallery-masthead">
         <div>
-          <p className="eyebrow">Event gallery</p>
-          <h2>Photos and videos</h2>
-          <p className="hero-subtitle">Player moments from the course, collected as they happen.</p>
+          <p className="eyebrow">{t("gallery.eyebrow")}</p>
+          <h2>{t("gallery.title")}</h2>
+          <p className="hero-subtitle">{t("gallery.subtitle")}</p>
         </div>
         {uploadRoundId ? (
-          <button className="button-primary" type="button" onClick={() => setUploadOpen(true)}>
-            Add media
+          <button
+            aria-label={t("gallery.openCameraUpload")}
+            className="button-primary icon-button"
+            title={t("gallery.openCameraUpload")}
+            type="button"
+            onClick={() => setUploadOpen(true)}
+          >
+            <CameraIcon className="icon-button__icon" />
           </button>
         ) : null}
       </section>
 
-      <section className="gallery-toolbar" aria-label="Gallery filters">
+      <section className="gallery-toolbar" aria-label={t("gallery.filters")}>
         <select value={roundFilter} onChange={(event) => setRoundFilter(event.target.value)}>
-          <option value="">All rounds</option>
+          <option value="">{t("gallery.allRounds")}</option>
           {rounds.map((round) => (
             <option key={round.id} value={round.id}>
-              {round.tournamentName} · {round.name || `Round ${round.round_number}`}
+              {round.tournamentName} · {round.name || `${t("rounds.round")} ${round.round_number}`}
             </option>
           ))}
         </select>
         <div className="segmented-control gallery-type-switch">
-          <button className={mediaType === "" ? "is-active" : ""} type="button" onClick={() => setMediaType("")}>All</button>
-          <button className={mediaType === "photo" ? "is-active" : ""} type="button" onClick={() => setMediaType("photo")}>Photos</button>
-          <button className={mediaType === "video" ? "is-active" : ""} type="button" onClick={() => setMediaType("video")}>Videos</button>
+          <button className={mediaType === "" ? "is-active" : ""} type="button" onClick={() => setMediaType("")}>{t("gallery.all")}</button>
+          <button className={mediaType === "photo" ? "is-active" : ""} type="button" onClick={() => setMediaType("photo")}>{t("gallery.photos")}</button>
+          <button className={mediaType === "video" ? "is-active" : ""} type="button" onClick={() => setMediaType("video")}>{t("gallery.videos")}</button>
         </div>
       </section>
 
       {error ? <p className="form-error">{error}</p> : null}
-      {loading ? <div className="loading-state">Loading gallery...</div> : null}
+      {loading ? <div className="loading-state">{t("gallery.loading")}</div> : null}
       {!loading && !items.length ? (
         <section className="detail-panel">
-          <h3>No media yet</h3>
-          <p className="hero-subtitle">The first upload will appear here for every logged-in player.</p>
+          <h3>{t("gallery.emptyTitle")}</h3>
+          <p className="hero-subtitle">{t("gallery.emptySubtitle")}</p>
         </section>
       ) : null}
 
       <section className="gallery-grid">
         {items.map((item) => (
           <button className="gallery-tile" key={item.id} type="button" onClick={() => setSelected(item)}>
-            <img src={item.thumbnail_url || item.display_url} alt={item.caption || `Gallery item by ${item.uploader.name}`} />
+            <img src={item.thumbnail_url || item.display_url} alt={item.caption || `${t("gallery.itemBy")} ${item.uploader.name}`} />
             <span className="gallery-tile__shade" />
             <span className="gallery-tile__meta">
               <strong>{item.uploader.name}</strong>
-              <span>{item.hole_number ? `Hole ${item.hole_number}` : item.round_name}</span>
+              <span>{item.hole_number ? `${t("score.hole")} ${item.hole_number}` : item.round_name}</span>
             </span>
             <span className="gallery-tile__counts">
-              {item.media_type === "video" ? <span>{formatDuration(item.duration_seconds) || "Video"}</span> : null}
-              <span>{item.like_count} likes</span>
+              {item.media_type === "video" ? <span>{formatDuration(item.duration_seconds) || t("gallery.video")}</span> : null}
+              <span>{item.like_count} {t("gallery.likes")}</span>
             </span>
           </button>
         ))}
@@ -181,17 +189,17 @@ export function GalleryPage() {
       <Modal
         open={Boolean(selected)}
         onClose={() => setSelected(null)}
-        title={selected?.caption || selected?.round_name || "Gallery media"}
+        title={selected?.caption || selected?.round_name || t("gallery.media")}
         footer={
           selected ? (
             <>
               {user?.role === "admin" ? (
                 <button className="button-ghost" type="button" onClick={deleteSelected}>
-                  Delete media
+                  {t("gallery.deleteMedia")}
                 </button>
               ) : null}
               <button className="button-secondary" type="button" onClick={() => toggleLike(selected)}>
-                {selected.liked_by_me ? "Unlike" : "Like"} · {selected.like_count}
+                {selected.liked_by_me ? t("gallery.unlike") : t("gallery.like")} · {selected.like_count}
               </button>
             </>
           ) : null
@@ -202,11 +210,11 @@ export function GalleryPage() {
             {selected.media_type === "video" ? (
               <video controls playsInline poster={selected.thumbnail_url || undefined} src={selected.display_url} />
             ) : (
-              <img src={selected.display_url} alt={selected.caption || `Gallery item by ${selected.uploader.name}`} />
+              <img src={selected.display_url} alt={selected.caption || `${t("gallery.itemBy")} ${selected.uploader.name}`} />
             )}
             <div className="gallery-detail__meta">
               <strong>{selected.uploader.name}</strong>
-              <span>{selected.tournament_name} · {selected.round_name}{selected.hole_number ? ` · Hole ${selected.hole_number}` : ""}</span>
+              <span>{selected.tournament_name} · {selected.round_name}{selected.hole_number ? ` · ${t("score.hole")} ${selected.hole_number}` : ""}</span>
             </div>
             <div className="gallery-comments">
               {comments.map((comment) => (
@@ -217,7 +225,7 @@ export function GalleryPage() {
                   </div>
                   {user?.role === "admin" ? (
                     <button className="button-ghost" type="button" onClick={() => deleteComment(comment.id)}>
-                      Delete
+                      {t("gallery.delete")}
                     </button>
                   ) : null}
                 </div>
@@ -227,10 +235,10 @@ export function GalleryPage() {
                   value={commentDraft}
                   maxLength={500}
                   onChange={(event) => setCommentDraft(event.target.value)}
-                  placeholder="Add a comment"
+                  placeholder={t("gallery.addComment")}
                 />
                 <button className="button-primary" type="submit" disabled={!commentDraft.trim()}>
-                  Post
+                  {t("gallery.post")}
                 </button>
               </form>
             </div>

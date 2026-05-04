@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import { CameraIcon } from "../components/CameraIcon";
 import { GalleryUploadModal } from "../components/GalleryUploadModal";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -19,6 +20,8 @@ export function RoundEntryPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isHoleImageOpen, setIsHoleImageOpen] = useState(false);
   const [isGalleryUploadOpen, setIsGalleryUploadOpen] = useState(false);
+  const [capturedMediaFile, setCapturedMediaFile] = useState<File | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const scorecardScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,7 +41,7 @@ export function RoundEntryPage() {
     if (!hole) return;
     setDraftStroke(hole.strokes ?? Math.max(1, hole.par));
     setDraftTouched(hole.strokes != null);
-  }, [hole?.hole_id]);
+  }, [hole]);
 
   useEffect(() => {
     const container = scorecardScrollRef.current;
@@ -48,7 +51,7 @@ export function RoundEntryPage() {
   }, [currentIndex]);
 
   const saveCurrentHole = async () => {
-    if (!token || !roundId || !hole) return;
+    if (!token || !roundId || !hole || !draftTouched) return;
     setSaving(true);
     setSaveError(null);
     try {
@@ -76,6 +79,18 @@ export function RoundEntryPage() {
   const hasNextHole = scorecard ? currentIndex < scorecard.holes.length - 1 : false;
   const roundName = scorecard?.round.name?.trim() || `Round ${scorecard?.round.round_number ?? ""}`;
   const courseName = scorecard?.round.course_name;
+
+  const openHoleCamera = () => {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = "";
+      cameraInputRef.current.click();
+    }
+  };
+
+  const closeGalleryUpload = () => {
+    setIsGalleryUploadOpen(false);
+    setCapturedMediaFile(null);
+  };
 
   return (
     <div className="stack-layout score-entry-layout">
@@ -124,7 +139,6 @@ export function RoundEntryPage() {
               <span>{currentHole.distance}m</span>
             </div>
           </div>
-          <div className="stroke-display">{draftTouched ? draftStroke : "?"}</div>
           <div className="stroke-controls">
             <button type="button" onClick={() => {
               if (!draftTouched) { setDraftTouched(true); setDraftStroke(currentHole.par); }
@@ -136,8 +150,17 @@ export function RoundEntryPage() {
               inputMode="numeric"
               type="number"
               value={draftTouched ? draftStroke : ""}
-              placeholder={String(currentHole.par)}
-              onChange={(event) => { setDraftTouched(true); setDraftStroke(Number(event.target.value)); }}
+              placeholder="?"
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                if (!nextValue) {
+                  setDraftTouched(false);
+                  setDraftStroke(currentHole.par);
+                  return;
+                }
+                setDraftTouched(true);
+                setDraftStroke(Number(nextValue));
+              }}
             />
             <button type="button" onClick={() => {
               if (!draftTouched) { setDraftTouched(true); setDraftStroke(currentHole.par); }
@@ -149,11 +172,13 @@ export function RoundEntryPage() {
           {saveError && <p className="form-error">{saveError}</p>}
           <div className="hole-stage__footer">
             <button
+              aria-label={t("gallery.openCameraForHole")}
               type="button"
-              className="button-secondary"
-              onClick={() => setIsGalleryUploadOpen(true)}
+              className="button-secondary icon-button"
+              title={t("gallery.openCameraForHole")}
+              onClick={openHoleCamera}
             >
-              Add media
+              <CameraIcon className="icon-button__icon" />
             </button>
             <button
               type="button"
@@ -172,7 +197,7 @@ export function RoundEntryPage() {
                 {t('score.next')}
               </button>
             ) : null}
-            <button type="button" className="button-primary" onClick={saveCurrentHole} disabled={saving}>
+            <button type="button" className="button-primary" onClick={saveCurrentHole} disabled={saving || !draftTouched}>
               {saving ? "Saving…" : t('score.saveAndContinue')}
             </button>
           </div>
@@ -199,15 +224,31 @@ export function RoundEntryPage() {
         </div>
       ) : null}
 
+      <input
+        ref={cameraInputRef}
+        className="visually-hidden"
+        type="file"
+        accept="image/*,video/*"
+        capture="environment"
+        onChange={(event) => {
+          const nextFile = event.target.files?.[0] ?? null;
+          if (!nextFile) return;
+          setCapturedMediaFile(nextFile);
+          setIsGalleryUploadOpen(true);
+        }}
+      />
+
       {scorecard && roundId && token ? (
         <GalleryUploadModal
           open={isGalleryUploadOpen}
-          onClose={() => setIsGalleryUploadOpen(false)}
+          onClose={closeGalleryUpload}
           token={token}
           roundId={roundId}
           holes={scorecard.holes}
           defaultHoleId={currentHole?.hole_id}
-          onUploaded={() => undefined}
+          initialFile={capturedMediaFile}
+          showSourceActions={false}
+          onUploaded={closeGalleryUpload}
         />
       ) : null}
 
@@ -256,7 +297,7 @@ export function RoundEntryPage() {
                     <td className="scorecard-table__label">{t('score.scoreLabel')}</td>
                     {sorted.map((h, i) => (
                       <td key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>
-                        {h.strokes ?? "?"}
+                        {h.strokes ?? "—"}
                       </td>
                     ))}
                   </tr>

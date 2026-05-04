@@ -289,6 +289,20 @@ button {
   color: var(--muted);
 }
 
+.icon-button {
+  width: 3rem;
+  min-width: 3rem;
+  min-height: 3rem;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.icon-button__icon {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex: 0 0 auto;
+}
+
 .app-controls {
   display: inline-flex;
   align-items: center;
@@ -648,17 +662,18 @@ button {
 
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: minmax(0, min(100%, 34rem));
+  justify-content: center;
+  gap: 1rem;
 }
 
 .gallery-tile {
   position: relative;
   min-width: 0;
-  aspect-ratio: 1;
+  aspect-ratio: 4 / 5;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  border-radius: 0.9rem;
   overflow: hidden;
   background: var(--bg-soft);
   color: var(--text);
@@ -826,13 +841,6 @@ button {
   box-shadow: 0 12px 28px rgba(255, 107, 157, 0.24);
 }
 
-.stroke-display {
-  font-size: clamp(3rem, 20vw, 6rem);
-  font-family: "Iowan Old Style", Georgia, serif;
-  color: var(--gold);
-  text-align: center;
-}
-
 .stroke-controls {
   width: 100%;
   min-width: 0;
@@ -852,6 +860,11 @@ button {
   color: var(--text);
   text-align: center;
   font-size: 1.25rem;
+}
+
+.stroke-controls input::placeholder {
+  color: var(--gold);
+  opacity: 1;
 }
 
 .totals-card {
@@ -1760,11 +1773,6 @@ button {
     justify-content: flex-end;
     gap: 0.4rem;
     font-size: 0.9rem;
-  }
-
-  .stroke-display {
-    font-size: clamp(3.2rem, 18vw, 4.8rem);
-    line-height: 0.95;
   }
 
   .bottom-nav {

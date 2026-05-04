@@ -19,6 +19,7 @@ frontend/dist/
 frontend/vite.config.js
 frontend/vite.config.d.ts
 backend/uploads/
+uploads/
 backend/.pytest_cache/
 backend/.mypy_cache/
 postgres-data/

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
+import { t } from "../lib/i18n";
 import type { GalleryMedia, HoleScorecardResponse } from "../lib/types";
 import { Modal } from "./Modal";
 
@@ -10,6 +11,8 @@ interface GalleryUploadModalProps {
   roundId: string;
   holes?: HoleScorecardResponse[];
   defaultHoleId?: string;
+  initialFile?: File | null;
+  showSourceActions?: boolean;
   onUploaded: (media: GalleryMedia) => void;
 }
 
@@ -20,6 +23,8 @@ export function GalleryUploadModal({
   roundId,
   holes = [],
   defaultHoleId,
+  initialFile = null,
+  showSourceActions = true,
   onUploaded,
 }: GalleryUploadModalProps) {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
@@ -31,8 +36,10 @@ export function GalleryUploadModal({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open) setHoleId(defaultHoleId ?? "");
-  }, [defaultHoleId, open]);
+    if (!open) return;
+    setHoleId(defaultHoleId ?? "");
+    setFile(initialFile);
+  }, [defaultHoleId, initialFile, open]);
 
   const resetAndClose = () => {
     setFile(null);
@@ -50,7 +57,7 @@ export function GalleryUploadModal({
       onUploaded(media);
       resetAndClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError(err instanceof Error ? err.message : t("gallery.uploadFailed"));
     } finally {
       setBusy(false);
     }
@@ -60,27 +67,29 @@ export function GalleryUploadModal({
     <Modal
       open={open}
       onClose={resetAndClose}
-      title="Add to gallery"
+      title={t("gallery.addToGallery")}
       footer={
         <>
           <button className="button-ghost" type="button" onClick={resetAndClose}>
-            Cancel
+            {t("gallery.cancel")}
           </button>
           <button className="button-primary" type="button" onClick={upload} disabled={!file || busy}>
-            {busy ? "Uploading..." : "Publish"}
+            {busy ? t("gallery.uploading") : t("gallery.publish")}
           </button>
         </>
       }
     >
       <div className="gallery-upload">
-        <div className="gallery-upload__actions">
-          <button className="button-secondary" type="button" onClick={() => cameraInputRef.current?.click()}>
-            Camera
-          </button>
-          <button className="button-secondary" type="button" onClick={() => pickerInputRef.current?.click()}>
-            Choose file
-          </button>
-        </div>
+        {showSourceActions ? (
+          <div className="gallery-upload__actions">
+            <button className="button-secondary" type="button" onClick={() => cameraInputRef.current?.click()}>
+              {t("gallery.camera")}
+            </button>
+            <button className="button-secondary" type="button" onClick={() => pickerInputRef.current?.click()}>
+              {t("gallery.chooseFile")}
+            </button>
+          </div>
+        ) : null}
         <input
           ref={cameraInputRef}
           className="visually-hidden"
@@ -104,25 +113,25 @@ export function GalleryUploadModal({
         ) : null}
         {holes.length ? (
           <label className="field-label">
-            Hole
+            {t("gallery.hole")}
             <select value={holeId} onChange={(event) => setHoleId(event.target.value)}>
-              <option value="">Round moment</option>
+              <option value="">{t("gallery.roundMoment")}</option>
               {holes.map((hole) => (
                 <option key={hole.hole_id} value={hole.hole_id}>
-                  Hole {hole.hole_number}
+                  {t("score.hole")} {hole.hole_number}
                 </option>
               ))}
             </select>
           </label>
         ) : null}
         <label className="field-label">
-          Caption
+          {t("gallery.caption")}
           <textarea
             rows={3}
             maxLength={280}
             value={caption}
             onChange={(event) => setCaption(event.target.value)}
-            placeholder="Optional caption"
+            placeholder={t("gallery.optionalCaption")}
           />
         </label>
         {error ? <p className="form-error">{error}</p> : null}
