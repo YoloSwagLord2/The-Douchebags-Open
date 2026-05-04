@@ -44,11 +44,12 @@ function displayRoundName(round: { round_number: number; name?: string | null })
   return round.name?.trim() || `Round ${round.round_number}`;
 }
 
-function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
+function RoundMatrix({ overview, mode }: { overview: TournamentOverviewResponse; mode: "official" | "bonus" }) {
+  const title = `${t('nav.board')} — ${mode === "official" ? "Stableford" : "Bonus"}`;
   if (overview.rounds.length === 0) {
     return (
       <section className="detail-panel">
-        <p className="eyebrow">Scoreboard</p>
+        <p className="eyebrow">{title}</p>
         <p style={{ margin: "0.5rem 0 0", color: "var(--text-muted, #8899aa)" }}>
           {t('leaderboard.noRoundsYet')}
         </p>
@@ -58,7 +59,7 @@ function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
   if (overview.entries.length === 0) {
     return (
       <section className="detail-panel">
-        <p className="eyebrow">Scoreboard</p>
+        <p className="eyebrow">{title}</p>
         <p style={{ margin: "0.5rem 0 0", color: "var(--text-muted, #8899aa)" }}>
           {t('leaderboard.noPlayersYet')}
         </p>
@@ -67,7 +68,7 @@ function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
   }
   return (
     <section className="detail-panel">
-      <p className="eyebrow">{t('leaderboard.scoreboardPerRound')}</p>
+      <p className="eyebrow">{title}</p>
       <div style={{ overflowX: "auto" }}>
         <table className="round-matrix__table">
           <thead>
@@ -170,8 +171,23 @@ export function LeaderboardIndexPage() {
       <section className="masthead-panel">
         <div>
           <p className="eyebrow">{t('leaderboard.tournamentLeaderboard')}</p>
-          <h2>{overview?.tournament_name ?? selectedTournament?.name ?? "Leaderboard"}</h2>
-          <p className="hero-subtitle">{t('leaderboard.subtitle')}</p>
+          <div className="masthead-tournament-picker">
+            <span className="masthead-tournament-picker__name">
+              {overview?.tournament_name ?? selectedTournament?.name ?? "Leaderboard"}
+            </span>
+            <span className="masthead-tournament-picker__arrow">▾</span>
+            <select
+              className="masthead-tournament-picker__select"
+              value={selectedId}
+              onChange={(e) => setSelectedId(e.target.value)}
+              aria-label={t('leaderboard.selectEvent')}
+            >
+              {navigation.length === 0 && <option value="">{t('leaderboard.noTournaments')}</option>}
+              {navigation.map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="segmented-control">
           <button
@@ -191,20 +207,6 @@ export function LeaderboardIndexPage() {
         </div>
       </section>
 
-      <section className="detail-panel">
-        <label className="field-label">
-          {t('leaderboard.selectEvent')}
-          <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
-            {navigation.length === 0 && <option value="">{t('leaderboard.noTournaments')}</option>}
-            {navigation.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} · {t.date}
-              </option>
-            ))}
-          </select>
-        </label>
-      </section>
-
       {!selectedId ? (
         <section className="detail-panel">
           <p style={{ margin: 0, color: "var(--text-muted, #8899aa)" }}>
@@ -217,7 +219,7 @@ export function LeaderboardIndexPage() {
         </section>
       ) : overview ? (
         <>
-          <RoundMatrix overview={overview} />
+          <RoundMatrix overview={overview} mode={mode} />
           {entries.length > 0 && (
             <>
               <FeaturedLeader entry={leader} />

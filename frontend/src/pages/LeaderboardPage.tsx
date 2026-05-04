@@ -49,11 +49,12 @@ function displayRoundName(round: { round_number: number; name?: string | null })
   return round.name?.trim() || `Round ${round.round_number}`;
 }
 
-function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
+function RoundMatrix({ overview, mode }: { overview: TournamentOverviewResponse; mode: "official" | "bonus" }) {
+  const title = `${t('nav.board')} — ${mode === "official" ? "Stableford" : "Bonus"}`;
   if (overview.rounds.length === 0) {
     return (
       <section className="detail-panel">
-        <p className="eyebrow">Scoreboard</p>
+        <p className="eyebrow">{title}</p>
         <p style={{ margin: "0.5rem 0 0", color: "var(--text-muted, #8899aa)" }}>
           {t('leaderboard.noRoundsYet')}
         </p>
@@ -63,7 +64,7 @@ function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
   if (overview.entries.length === 0) {
     return (
       <section className="detail-panel">
-        <p className="eyebrow">Scoreboard</p>
+        <p className="eyebrow">{title}</p>
         <p style={{ margin: "0.5rem 0 0", color: "var(--text-muted, #8899aa)" }}>
           {t('leaderboard.noPlayersYet')}
         </p>
@@ -72,7 +73,7 @@ function RoundMatrix({ overview }: { overview: TournamentOverviewResponse }) {
   }
   return (
     <section className="detail-panel round-matrix">
-      <p className="eyebrow">{t('leaderboard.scoreboardPerRound')}</p>
+      <p className="eyebrow">{title}</p>
       <div style={{ overflowX: "auto" }}>
         <table className="round-matrix__table">
           <thead>
@@ -169,11 +170,11 @@ export function LeaderboardPage({ scope }: { scope: "round" | "tournament" }) {
         <div>
           <p className="eyebrow">{scope === "round" ? t('leaderboard.roundLeaderboard') : t('leaderboard.tournamentLeaderboard')}</p>
           <h2>{tournamentName}</h2>
-          <p className="hero-subtitle">
-            {scope === "round"
-              ? `${currentRound ? displayRoundName(currentRound) : "Round —"} at ${navRound?.course_name ?? ""}`
-              : t('leaderboard.subtitle')}
-          </p>
+          {scope === "round" && (
+            <p className="hero-subtitle">
+              {currentRound ? displayRoundName(currentRound) : "Round —"} at {navRound?.course_name ?? ""}
+            </p>
+          )}
         </div>
         <div className="segmented-control">
           <button className={mode === "official" ? "is-active" : ""} onClick={() => setMode("official")} type="button">
@@ -188,7 +189,7 @@ export function LeaderboardPage({ scope }: { scope: "round" | "tournament" }) {
       {scope === "tournament" ? (
         <>
           {overview ? (
-            <RoundMatrix overview={overview} />
+            <RoundMatrix overview={overview} mode={mode} />
           ) : (
             <section className="detail-panel">
               <p style={{ margin: 0, color: "var(--text-muted, #8899aa)" }}>{t('leaderboard.loading')}</p>

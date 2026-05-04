@@ -201,7 +201,6 @@ button {
 
 .top-hero__actions,
 .hole-stage__footer,
-.segmented-control,
 .detail-panel__row,
 .rule-group__actions {
   display: flex;
@@ -519,31 +518,73 @@ button {
   gap: 0.75rem;
 }
 
+.masthead-tournament-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  cursor: pointer;
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.masthead-tournament-picker__name {
+  font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.masthead-tournament-picker__arrow {
+  font-size: 0.8em;
+  opacity: 0.6;
+}
+
+.masthead-tournament-picker__select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+}
+
 .leaderboard-row {
   border-radius: 1rem;
-  padding: 0.85rem;
+  padding: 0.85rem 0.85rem 0.85rem 1.2rem;
   display: grid;
-  grid-template-columns: 2.2rem minmax(0, 1fr) repeat(3, minmax(3.2rem, auto));
-  gap: 0.7rem;
-  align-items: center;
+  grid-template-columns: 2.2rem auto 1fr;
+  column-gap: 0.15rem;
+  row-gap: 0.7rem;
+  align-items: stretch;
 }
 
-.leaderboard-row__identity {
+.leaderboard-row__position {
+  font-size: 1.5rem;
+  font-family: "Iowan Old Style", Georgia, serif;
+  color: var(--gold);
   display: flex;
-  gap: 0.7rem;
   align-items: center;
-  min-width: 0;
 }
 
-.leaderboard-row__identity > div {
-  min-width: 0;
+
+.leaderboard-row__avatar {
+  display: flex;
+  align-items: center;
 }
 
 .leaderboard-avatar {
-  width: 2.75rem;
-  height: 2.75rem;
   border-radius: 999px;
   object-fit: cover;
+}
+
+.leaderboard-avatar--fill {
+  width: auto;
+  height: 100%;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  max-width: 4rem;
+  aspect-ratio: 1;
 }
 
 .leaderboard-avatar--fallback {
@@ -552,12 +593,31 @@ button {
   place-items: center;
   color: var(--gold);
   font-weight: 700;
+  font-size: 0.9rem;
 }
 
-.leaderboard-row__position {
-  font-size: 1.5rem;
-  font-family: "Iowan Old Style", Georgia, serif;
-  color: var(--gold);
+.leaderboard-row__body {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.4rem;
+  min-width: 0;
+  padding-left: 0.4rem;
+}
+
+.leaderboard-row__header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.leaderboard-row__stats {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: nowrap;
 }
 
 .leaderboard-row__name {
@@ -572,8 +632,9 @@ button {
 }
 
 .leaderboard-row__stat {
+  flex: 1;
   min-width: 0;
-  text-align: right;
+  text-align: center;
 }
 
 .leaderboard-row__stat strong {
@@ -587,9 +648,16 @@ button {
 }
 
 .segmented-control {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 999px;
-  padding: 0.3rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.segmented-control button {
+  min-height: 36px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.82rem;
 }
 
 .segmented-control button.is-active {
@@ -1884,44 +1952,17 @@ button {
   }
 
   .leaderboard-row {
-    grid-template-columns: 1.8rem repeat(3, minmax(0, 1fr));
     gap: 0.45rem;
     padding: 0.7rem;
-  }
-
-  .leaderboard-avatar {
-    width: 2.25rem;
-    height: 2.25rem;
   }
 
   .leaderboard-row__position {
     font-size: 1.15rem;
   }
 
-  .leaderboard-row__identity {
-    grid-column: 2 / -1;
-  }
-
   .leaderboard-row__meta,
   .leaderboard-row__label {
     font-size: 0.68rem;
-  }
-
-  .leaderboard-row__stat {
-    grid-row: 2;
-    text-align: center;
-  }
-
-  .leaderboard-row > .leaderboard-row__stat:nth-child(3) {
-    grid-column: 2;
-  }
-
-  .leaderboard-row > .leaderboard-row__stat:nth-child(4) {
-    grid-column: 3;
-  }
-
-  .leaderboard-row > .leaderboard-row__stat:nth-child(5) {
-    grid-column: 4;
   }
 
   .leaderboard-row__stat strong {
