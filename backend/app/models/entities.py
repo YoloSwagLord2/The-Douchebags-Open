@@ -50,6 +50,9 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     photo_original_path: Mapped[str | None] = mapped_column(String(255))
     photo_avatar_path: Mapped[str | None] = mapped_column(String(255))
     photo_feature_path: Mapped[str | None] = mapped_column(String(255))
+    age: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    signature_move: Mapped[str | None] = mapped_column(Text, nullable=True)
+    bio: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     scores: Mapped[list["Score"]] = relationship(back_populates="player", foreign_keys="Score.player_id")
     roster_entries: Mapped[list["TournamentPlayer"]] = relationship(back_populates="player")

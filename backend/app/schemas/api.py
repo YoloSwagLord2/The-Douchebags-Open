@@ -118,6 +118,17 @@ class PlayerResponse(APIModel):
     photo_feature_url: str | None = None
 
 
+class PlayerDetailResponse(APIModel):
+    id: uuid.UUID
+    name: str
+    hcp: float
+    age: int | None = None
+    signature_move: str | None = None
+    bio: str | None = None
+    avatar_url: str | None = None
+    feature_photo_url: str | None = None
+
+
 class TournamentCreate(BaseModel):
     name: str
     date: dt.date

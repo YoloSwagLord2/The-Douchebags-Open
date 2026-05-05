@@ -10,6 +10,8 @@ import type {
   TournamentOverviewResponse,
 } from "../lib/types";
 import { LeaderboardTable } from "../components/LeaderboardTable";
+import { PlayerCardModal } from "../components/PlayerCardModal";
+import { ScorecardModal } from "../components/ScorecardModal";
 
 function initials(name: string) {
   return name
@@ -20,15 +22,15 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-function FeaturedLeader({ entry }: { entry?: LeaderboardEntry }) {
+function FeaturedLeader({ entry, onPlayerClick }: { entry?: LeaderboardEntry; onPlayerClick: (id: string) => void }) {
   if (!entry) return null;
   return (
     <section className="featured-leader">
       <div className="featured-leader__media">
         {entry.feature_photo_url ? (
-          <img alt={entry.player_name} src={entry.feature_photo_url} />
+          <img alt={entry.player_name} src={entry.feature_photo_url} onClick={() => onPlayerClick(entry.player_id)} style={{ cursor: "pointer" }} />
         ) : (
-          <div className="featured-leader__placeholder">{entry.player_name.slice(0, 1)}</div>
+          <div className="featured-leader__placeholder" onClick={() => onPlayerClick(entry.player_id)} style={{ cursor: "pointer" }}>{entry.player_name.slice(0, 1)}</div>
         )}
       </div>
       <div className="featured-leader__copy">
@@ -49,7 +51,7 @@ function displayRoundName(round: { round_number: number; name?: string | null })
   return round.name?.trim() || `Round ${round.round_number}`;
 }
 
-function RoundMatrix({ overview, mode }: { overview: TournamentOverviewResponse; mode: "official" | "bonus" }) {
+function RoundMatrix({ overview, mode, onPlayerClick }: { overview: TournamentOverviewResponse; mode: "official" | "bonus"; onPlayerClick: (id: string) => void }) {
   const title = `${t('nav.board')} — ${mode === "official" ? "Stableford" : "Bonus"}`;
   if (overview.rounds.length === 0) {
     return (
@@ -91,14 +93,9 @@ function RoundMatrix({ overview, mode }: { overview: TournamentOverviewResponse;
                 <td className="round-matrix__player-col">
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     {entry.avatar_url ? (
-                      <img
-                        alt={entry.player_name}
-                        className="leaderboard-avatar"
-                        src={entry.avatar_url}
-                        style={{ width: 28, height: 28 }}
-                      />
+                      <img alt={entry.player_name} className="leaderboard-avatar" src={entry.avatar_url} style={{ width: 28, height: 28, cursor: "pointer" }} onClick={() => onPlayerClick(entry.player_id)} />
                     ) : (
-                      <div className="leaderboard-avatar leaderboard-avatar--fallback" style={{ width: 28, height: 28, fontSize: "0.65rem" }}>
+                      <div className="leaderboard-avatar leaderboard-avatar--fallback" style={{ width: 28, height: 28, fontSize: "0.65rem", cursor: "pointer" }} onClick={() => onPlayerClick(entry.player_id)}>
                         {initials(entry.player_name)}
                       </div>
                     )}
@@ -132,6 +129,8 @@ export function LeaderboardPage({ scope }: { scope: "round" | "tournament" }) {
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [overview, setOverview] = useState<TournamentOverviewResponse | null>(null);
   const [mode, setMode] = useState<"official" | "bonus">("official");
+  const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
+  const [scorecardPlayerId, setScorecardPlayerId] = useState<string | null>(null);
   const outlet = useOutletContext<{ navigation: NavigationTournament[] }>();
 
   const currentId = scope === "round"
@@ -166,6 +165,12 @@ export function LeaderboardPage({ scope }: { scope: "round" | "tournament" }) {
 
   return (
     <div className="stack-layout">
+      <PlayerCardModal playerId={activePlayerId} onClose={() => setActivePlayerId(null)} />
+      <ScorecardModal
+        roundId={scope === "round" ? (data?.round?.id ?? currentId ?? null) : null}
+        playerId={scorecardPlayerId}
+        onClose={() => setScorecardPlayerId(null)}
+      />
       <section className="masthead-panel">
         <div>
           <p className="eyebrow">{scope === "round" ? t('leaderboard.roundLeaderboard') : t('leaderboard.tournamentLeaderboard')}</p>
@@ -189,7 +194,7 @@ export function LeaderboardPage({ scope }: { scope: "round" | "tournament" }) {
       {scope === "tournament" ? (
         <>
           {overview ? (
-            <RoundMatrix overview={overview} mode={mode} />
+            <RoundMatrix overview={overview} mode={mode} onPlayerClick={setActivePlayerId} />
           ) : (
             <section className="detail-panel">
               <p style={{ margin: 0, color: "var(--text-muted, #8899aa)" }}>{t('leaderboard.loading')}</p>
@@ -197,15 +202,15 @@ export function LeaderboardPage({ scope }: { scope: "round" | "tournament" }) {
           )}
           {entries.length > 0 && (
             <>
-              <FeaturedLeader entry={leader} />
-              <LeaderboardTable entries={entries} mode={mode} />
+              <FeaturedLeader entry={leader} onPlayerClick={setActivePlayerId} />
+              <LeaderboardTable entries={entries} mode={mode} onPlayerClick={setActivePlayerId} />
             </>
           )}
         </>
       ) : (
         <>
-          <FeaturedLeader entry={leader} />
-          <LeaderboardTable entries={entries} mode={mode} />
+          <FeaturedLeader entry={leader} onPlayerClick={setActivePlayerId} />
+          <LeaderboardTable entries={entries} mode={mode} onPlayerClick={setActivePlayerId} onScoreClick={setScorecardPlayerId} />
         </>
       )}
     </div>

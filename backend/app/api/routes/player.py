@@ -9,7 +9,7 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.entities import BonusRule, AchievementEvent, BonusAward, NotificationRecipient, Round, Score, ScoreRevision, User
 from app.models.enums import RoundStatus, ScopeType, ScoreChangeSource
-from app.schemas.api import ScorecardResponse, ScorecardUpdateRequest
+from app.schemas.api import PlayerDetailResponse, ScorecardResponse, ScorecardUpdateRequest
 from app.services.scoring import (
     build_round_meta,
     compute_round_totals,
@@ -109,6 +109,20 @@ def get_my_scorecard(
     return _scorecard_response(db, round_obj, current_user)
 
 
+@router.get("/rounds/{round_id}/scorecard/{player_id}", response_model=ScorecardResponse)
+def get_player_scorecard(
+    round_id: uuid.UUID,
+    player_id: uuid.UUID,
+    _current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ScorecardResponse:
+    round_obj = get_round_or_404(db, round_id)
+    player = db.get(User, player_id)
+    if not player:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Player not found")
+    return _scorecard_response(db, round_obj, player)
+
+
 @router.put("/rounds/{round_id}/scorecard/me", response_model=ScorecardResponse)
 def update_my_scorecard(
     round_id: uuid.UUID,
@@ -206,6 +220,29 @@ def update_my_scorecard(
         newly_unlocked_bonuses=new_bonus_awards,
         new_achievements=new_achievement_events,
         new_notifications=new_notifications,
+    )
+
+
+@router.get("/players/{player_id}", response_model=PlayerDetailResponse)
+def get_player_detail(
+    player_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> PlayerDetailResponse:
+    from sqlalchemy import select as sa_select
+    from app.utils.serializers import media_url
+    player = db.scalar(sa_select(User).where(User.id == player_id))
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+    return PlayerDetailResponse(
+        id=player.id,
+        name=player.name,
+        hcp=float(player.hcp),
+        age=player.age,
+        signature_move=player.signature_move,
+        bio=player.bio,
+        avatar_url=media_url(player.photo_avatar_path),
+        feature_photo_url=media_url(player.photo_feature_path),
     )
 
 

@@ -10,20 +10,22 @@ import type {
   TournamentOverviewResponse,
 } from "../lib/types";
 import { LeaderboardTable } from "../components/LeaderboardTable";
+import { PlayerCardModal } from "../components/PlayerCardModal";
+import { ScorecardModal } from "../components/ScorecardModal";
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0] ?? "").join("").slice(0, 2).toUpperCase();
 }
 
-function FeaturedLeader({ entry }: { entry?: LeaderboardEntry }) {
+function FeaturedLeader({ entry, onPlayerClick }: { entry?: LeaderboardEntry; onPlayerClick: (id: string) => void }) {
   if (!entry) return null;
   return (
     <section className="featured-leader">
       <div className="featured-leader__media">
         {entry.feature_photo_url ? (
-          <img alt={entry.player_name} src={entry.feature_photo_url} />
+          <img alt={entry.player_name} src={entry.feature_photo_url} onClick={() => onPlayerClick(entry.player_id)} style={{ cursor: "pointer" }} />
         ) : (
-          <div className="featured-leader__placeholder">{entry.player_name.slice(0, 1)}</div>
+          <div className="featured-leader__placeholder" onClick={() => onPlayerClick(entry.player_id)} style={{ cursor: "pointer" }}>{entry.player_name.slice(0, 1)}</div>
         )}
       </div>
       <div className="featured-leader__copy">
@@ -44,7 +46,7 @@ function displayRoundName(round: { round_number: number; name?: string | null })
   return round.name?.trim() || `Round ${round.round_number}`;
 }
 
-function RoundMatrix({ overview, mode }: { overview: TournamentOverviewResponse; mode: "official" | "bonus" }) {
+function RoundMatrix({ overview, mode, onPlayerClick, onScoreClick }: { overview: TournamentOverviewResponse; mode: "official" | "bonus"; onPlayerClick: (id: string) => void; onScoreClick: (playerId: string, roundId: string) => void }) {
   const title = `${t('nav.board')} — ${mode === "official" ? "Stableford" : "Bonus"}`;
   if (overview.rounds.length === 0) {
     return (
@@ -94,17 +96,9 @@ function RoundMatrix({ overview, mode }: { overview: TournamentOverviewResponse;
                 <td className="round-matrix__player-col">
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     {entry.avatar_url ? (
-                      <img
-                        alt={entry.player_name}
-                        className="leaderboard-avatar"
-                        src={entry.avatar_url}
-                        style={{ width: 28, height: 28 }}
-                      />
+                      <img alt={entry.player_name} className="leaderboard-avatar" src={entry.avatar_url} style={{ width: 28, height: 28, cursor: "pointer" }} onClick={() => onPlayerClick(entry.player_id)} />
                     ) : (
-                      <div
-                        className="leaderboard-avatar leaderboard-avatar--fallback"
-                        style={{ width: 28, height: 28, fontSize: "0.65rem" }}
-                      >
+                      <div className="leaderboard-avatar leaderboard-avatar--fallback" style={{ width: 28, height: 28, fontSize: "0.65rem", cursor: "pointer" }} onClick={() => onPlayerClick(entry.player_id)}>
                         {initials(entry.player_name)}
                       </div>
                     )}
@@ -116,7 +110,13 @@ function RoundMatrix({ overview, mode }: { overview: TournamentOverviewResponse;
                     {result.holes_played === 0 ? (
                       <span style={{ color: "var(--text-muted, #8899aa)" }}>—</span>
                     ) : (
-                      <strong>{result.stableford}</strong>
+                      <button
+                        type="button"
+                        className="round-matrix__score-btn"
+                        onClick={() => onScoreClick(entry.player_id, result.round_id)}
+                      >
+                        {result.stableford}
+                      </button>
                     )}
                   </td>
                 ))}
@@ -140,6 +140,8 @@ export function LeaderboardIndexPage() {
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [mode, setMode] = useState<"official" | "bonus">("official");
+  const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
+  const [scorecardTarget, setScorecardTarget] = useState<{ playerId: string; roundId: string } | null>(null);
 
   // Auto-select the first (latest) tournament once navigation loads
   useEffect(() => {
@@ -168,6 +170,12 @@ export function LeaderboardIndexPage() {
 
   return (
     <div className="stack-layout">
+      <PlayerCardModal playerId={activePlayerId} onClose={() => setActivePlayerId(null)} />
+      <ScorecardModal
+        roundId={scorecardTarget?.roundId ?? null}
+        playerId={scorecardTarget?.playerId ?? null}
+        onClose={() => setScorecardTarget(null)}
+      />
       <section className="masthead-panel">
         <div>
           <p className="eyebrow">{t('leaderboard.tournamentLeaderboard')}</p>
@@ -219,11 +227,11 @@ export function LeaderboardIndexPage() {
         </section>
       ) : overview ? (
         <>
-          <RoundMatrix overview={overview} mode={mode} />
+          <RoundMatrix overview={overview} mode={mode} onPlayerClick={setActivePlayerId} onScoreClick={(playerId, roundId) => setScorecardTarget({ playerId, roundId })} />
           {entries.length > 0 && (
             <>
-              <FeaturedLeader entry={leader} />
-              <LeaderboardTable entries={entries} mode={mode} />
+              <FeaturedLeader entry={leader} onPlayerClick={setActivePlayerId} />
+              <LeaderboardTable entries={entries} mode={mode} onPlayerClick={setActivePlayerId} />
             </>
           )}
         </>

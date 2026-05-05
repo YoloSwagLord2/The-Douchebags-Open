@@ -295,11 +295,22 @@ export function RoundEntryPage() {
                   </tr>
                   <tr>
                     <td className="scorecard-table__label">{t('score.scoreLabel')}</td>
-                    {sorted.map((h, i) => (
-                      <td key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>
-                        {h.strokes ?? "—"}
-                      </td>
-                    ))}
+                    {sorted.map((h, i) => {
+                      const diff = h.strokes != null ? h.strokes - h.par : null;
+                      const badge =
+                        diff === null ? "" :
+                        diff <= -2 ? " score-eagle" :
+                        diff === -1 ? " score-birdie" :
+                        diff === 1 ? " score-bogey" :
+                        diff >= 2 ? " score-dbl-bogey" : "";
+                      return (
+                        <td key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>
+                          {h.strokes != null
+                            ? <span className={`score-badge${badge}`}>{h.strokes}</span>
+                            : "—"}
+                        </td>
+                      );
+                    })}
                   </tr>
                   <tr>
                     <td className="scorecard-table__label">{t('score.stb')}</td>

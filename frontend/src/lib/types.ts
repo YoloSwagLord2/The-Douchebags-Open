@@ -356,3 +356,14 @@ export type RuleNode =
       operator: RuleOperator;
       value: string | number | Array<string | number>;
     };
+
+export interface PlayerDetail {
+  id: string;
+  name: string;
+  hcp: number;
+  age: number | null;
+  signature_move: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  feature_photo_url: string | null;
+}

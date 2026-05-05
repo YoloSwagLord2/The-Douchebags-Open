@@ -12,6 +12,7 @@ import type {
   LeaderboardResponse,
   NavigationTournament,
   NotificationResponse,
+  PlayerDetail,
   PlayerResponse,
   RoundResponse,
   ScorecardResponse,
@@ -88,6 +89,8 @@ export const api = {
   tournamentLeaderboard: (id: string, token: string) =>
     request<LeaderboardResponse>(`/leaderboards/tournaments/${id}`, {}, token),
   myScorecard: (id: string, token: string) => request<ScorecardResponse>(`/rounds/${id}/scorecard/me`, {}, token),
+  playerRoundScorecard: (roundId: string, playerId: string, token: string) =>
+    request<ScorecardResponse>(`/rounds/${roundId}/scorecard/${playerId}`, {}, token),
   saveScorecard: (id: string, scores: Array<{ hole_id: string; strokes: number }>, token: string) =>
     request<ScorecardResponse>(
       `/rounds/${id}/scorecard/me`,
@@ -140,6 +143,7 @@ export const api = {
     request<{ status: string }>(`/admin/gallery/media/${id}`, { method: "DELETE" }, token),
   deleteAdminGalleryComment: (id: string, token: string) =>
     request<{ status: string }>(`/admin/gallery/comments/${id}`, { method: "DELETE" }, token),
+  playerDetail: (id: string, token: string) => request<PlayerDetail>(`/players/${id}`, {}, token),
   myBonusAwards: (token: string) => request<BonusAward[]>("/players/me/bonus-awards", {}, token),
   myAchievements: (token: string) => request<AchievementEvent[]>("/players/me/achievements", {}, token),
   notifications: (token: string) => request<NotificationResponse[]>("/notifications", {}, token),
