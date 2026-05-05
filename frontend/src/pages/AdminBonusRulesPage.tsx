@@ -37,7 +37,7 @@ export function AdminBonusRulesPage() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!token) return;
+    if (!token || !scopeId) return;
     await api.createBonusRule(
       {
         name,
@@ -62,12 +62,12 @@ export function AdminBonusRulesPage() {
         <p className="eyebrow">{t('bonusRules.eyebrow')}</p>
         <h2>{t('bonusRules.createTitle')}</h2>
         <form className="stack-form" onSubmit={submit}>
-          <input placeholder="Rule name" value={name} onChange={(event) => setName(event.target.value)} />
+          <input required placeholder="Rule name" value={name} onChange={(event) => setName(event.target.value)} />
           <select value={scopeType} onChange={(event) => setScopeType(event.target.value as "round" | "tournament")}>
             <option value="round">{t('bonusRules.scopeRound')}</option>
             <option value="tournament">{t('bonusRules.scopeTournament')}</option>
           </select>
-          <select value={scopeId} onChange={(event) => setScopeId(event.target.value)}>
+          <select required value={scopeId} onChange={(event) => setScopeId(event.target.value)}>
             <option value="">{t('bonusRules.selectScope')}</option>
             {scopeType === "tournament"
               ? navigation.map((item) => (
@@ -81,8 +81,8 @@ export function AdminBonusRulesPage() {
                   )),
                 )}
           </select>
-          <input type="number" value={points} onChange={(event) => setPoints(Number(event.target.value))} />
-          <textarea placeholder="Winner message" value={message} onChange={(event) => setMessage(event.target.value)} />
+          <input min={1} required type="number" value={points} onChange={(event) => setPoints(Number(event.target.value))} />
+          <textarea required placeholder="Winner message" value={message} onChange={(event) => setMessage(event.target.value)} />
           <select value={preset} onChange={(event) => setPreset(event.target.value as BonusAnimationPreset)}>
             <option value="confetti">{t('bonusRules.animConfetti')}</option>
             <option value="fireworks">{t('bonusRules.animFireworks')}</option>

@@ -146,6 +146,8 @@ export const api = {
   unreadCount: (token: string) => request<{ unread_count: number }>("/notifications/unread-count", {}, token),
   markNotificationRead: (id: string, token: string) =>
     request<{ status: string }>(`/notifications/${id}/read`, { method: "POST" }, token),
+  markNotificationPopupSeen: (id: string, token: string) =>
+    request<{ status: string }>(`/notifications/${id}/popup-seen`, { method: "POST" }, token),
   markAllNotificationsRead: (token: string) =>
     request<{ status: string }>("/notifications/read-all", { method: "POST" }, token),
   adminPlayers: (token: string) => request<PlayerResponse[]>("/admin/players", {}, token),
@@ -212,6 +214,8 @@ export const api = {
       { method: "PUT", body: JSON.stringify({ scores }) },
       token,
     ),
+  adminPlayerScorecard: (roundId: string, playerId: string, token: string) =>
+    request<ScorecardResponse>(`/admin/rounds/${roundId}/players/${playerId}/scorecard`, {}, token),
   adminBonusRules: (token: string) => request<BonusRuleResponse[]>("/admin/bonus-rules", {}, token),
   createBonusRule: (payload: Record<string, unknown>, token: string) =>
     request<BonusRuleResponse>("/admin/bonus-rules", { method: "POST", body: JSON.stringify(payload) }, token),

@@ -42,7 +42,16 @@ export function AdminNotificationsPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!token) return;
-    await api.createAdminNotification(form, token);
+    const payload: Record<string, unknown> = {
+      title: form.title,
+      body: form.body,
+      priority: form.priority,
+      target_type: form.target_type,
+    };
+    if (form.target_type === "individual") payload.user_id = form.user_id;
+    if (form.target_type === "round_roster") payload.round_id = form.round_id;
+    if (form.target_type === "tournament_roster") payload.tournament_id = form.tournament_id;
+    await api.createAdminNotification(payload, token);
     setForm({ ...form, title: "", body: "" });
     await load();
   };
@@ -53,8 +62,8 @@ export function AdminNotificationsPage() {
         <p className="eyebrow">{t('notifications.eyebrow')}</p>
         <h2>{t('notifications.title')}</h2>
         <form className="stack-form" onSubmit={submit}>
-          <input placeholder="Title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
-          <textarea placeholder="Body" value={form.body} onChange={(event) => setForm({ ...form, body: event.target.value })} />
+          <input required placeholder="Title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
+          <textarea required placeholder="Body" value={form.body} onChange={(event) => setForm({ ...form, body: event.target.value })} />
           <select value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value })}>
             <option value="low">{t('notifications.priorityLow')}</option>
             <option value="normal">{t('notifications.priorityNormal')}</option>
@@ -67,13 +76,13 @@ export function AdminNotificationsPage() {
             <option value="tournament_roster">{t('notifications.targetTournament')}</option>
           </select>
           {form.target_type === "individual" ? (
-            <select value={form.user_id} onChange={(event) => setForm({ ...form, user_id: event.target.value })}>
+            <select required value={form.user_id} onChange={(event) => setForm({ ...form, user_id: event.target.value })}>
               <option value="">{t('notifications.selectPlayer')}</option>
               {players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
             </select>
           ) : null}
           {form.target_type === "round_roster" ? (
-            <select value={form.round_id} onChange={(event) => setForm({ ...form, round_id: event.target.value })}>
+            <select required value={form.round_id} onChange={(event) => setForm({ ...form, round_id: event.target.value })}>
               <option value="">Select round</option>
               {navigation.flatMap((item) =>
                 item.rounds.map((round) => (
@@ -85,7 +94,7 @@ export function AdminNotificationsPage() {
             </select>
           ) : null}
           {form.target_type === "tournament_roster" ? (
-            <select value={form.tournament_id} onChange={(event) => setForm({ ...form, tournament_id: event.target.value })}>
+            <select required value={form.tournament_id} onChange={(event) => setForm({ ...form, tournament_id: event.target.value })}>
               <option value="">Select tournament</option>
               {navigation.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>

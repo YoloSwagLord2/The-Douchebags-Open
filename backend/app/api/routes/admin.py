@@ -27,7 +27,7 @@ from app.models.entities import (
     TournamentPlayer,
     User,
 )
-from app.models.enums import NotificationSourceType, NotificationType, RoundStatus, ScoreChangeSource
+from app.models.enums import NotificationSourceType, NotificationType, RoundStatus, ScopeType, ScoreChangeSource
 from app.schemas.api import (
     AchievementRuleCreate,
     AchievementRuleResponse,
@@ -48,6 +48,7 @@ from app.schemas.api import (
     RoundCreate,
     RoundResponse,
     RoundUpdate,
+    ScorecardResponse,
     ScorecardUpdateRequest,
     TournamentCreate,
     TournamentResponse,
@@ -61,11 +62,16 @@ from app.services.media import store_hole_image, store_player_photo, store_ui_ba
 from app.services.notifications import create_notification
 from app.services.rules import validate_rule_definition
 from app.services.scoring import (
+    build_round_meta,
+    compute_round_totals,
+    ensure_player_can_score,
+    get_active_bonus_points_for_round,
+    get_player_scores,
     get_round_or_404,
     recompute_achievement_rules,
     recompute_bonus_rules,
 )
-from app.utils.serializers import notification_response, player_response
+from app.utils.serializers import bonus_unlock_response, notification_response, player_response, user_summary
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -511,6 +517,54 @@ def lock_round(round_id: uuid.UUID, _: User = Depends(require_admin), db: Sessio
     return round_obj
 
 
+@router.get("/rounds/{round_id}/players/{player_id}/scorecard", response_model=ScorecardResponse)
+def get_admin_player_scorecard(
+    round_id: uuid.UUID,
+    player_id: uuid.UUID,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> ScorecardResponse:
+    round_obj = get_round_or_404(db, round_id)
+    player = db.get(User, player_id)
+    if not player:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Player not found")
+    ensure_player_can_score(db, round_obj, player_id)
+    scores_by_hole = get_player_scores(db, round_obj.id, player.id)
+    computed = compute_round_totals(round_obj.course, float(player.hcp), scores_by_hole)
+    bonus_points = get_active_bonus_points_for_round(
+        db,
+        player_id=player.id,
+        round_id=round_obj.id,
+        tournament_id=round_obj.tournament_id,
+    )
+    computed.totals.bonus_points = bonus_points
+    computed.totals.bonus_adjusted_stableford = computed.totals.official_stableford + bonus_points
+    active_bonuses = db.scalars(
+        select(BonusAward)
+        .options(joinedload(BonusAward.bonus_rule))
+        .join(BonusRule, BonusRule.id == BonusAward.bonus_rule_id)
+        .where(
+            BonusAward.player_id == player.id,
+            BonusAward.revoked_at.is_(None),
+            (
+                ((BonusRule.scope_type == ScopeType.ROUND) & (BonusRule.round_id == round_obj.id))
+                | ((BonusRule.scope_type == ScopeType.TOURNAMENT) & (BonusRule.tournament_id == round_obj.tournament_id))
+            ),
+        )
+        .order_by(BonusAward.awarded_at.desc())
+    ).all()
+    return ScorecardResponse(
+        round=build_round_meta(round_obj),
+        player=user_summary(player),
+        holes=computed.holes,
+        totals=computed.totals,
+        active_bonuses=[bonus_unlock_response(award) for award in active_bonuses],
+        newly_unlocked_bonuses=[],
+        new_achievements=[],
+        new_notifications=[],
+    )
+
+
 @router.put("/rounds/{round_id}/players/{player_id}/scorecard")
 def admin_override_scorecard(
     round_id: uuid.UUID,
@@ -520,6 +574,7 @@ def admin_override_scorecard(
     db: Session = Depends(get_db),
 ):
     round_obj = get_round_or_404(db, round_id)
+    ensure_player_can_score(db, round_obj, player_id)
     valid_hole_ids = {hole.id for hole in round_obj.course.holes}
     revision_ids: list[uuid.UUID] = []
     now = datetime.now(timezone.utc)

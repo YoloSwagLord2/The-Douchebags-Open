@@ -53,6 +53,25 @@ def mark_read(
     return {"status": "ok"}
 
 
+@router.post("/{notification_id}/popup-seen")
+def mark_popup_seen(
+    notification_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    recipient = db.scalar(
+        select(NotificationRecipient).where(
+            NotificationRecipient.notification_id == notification_id,
+            NotificationRecipient.user_id == current_user.id,
+        )
+    )
+    if not recipient:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found")
+    recipient.popup_seen_at = recipient.popup_seen_at or datetime.now(timezone.utc)
+    db.commit()
+    return {"status": "ok"}
+
+
 @router.post("/read-all")
 def mark_all_read(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, str]:
     recipients = db.scalars(

@@ -68,11 +68,12 @@ export function PopupProvider({ children }: PropsWithChildren) {
     const [count, notifications] = await Promise.all([api.unreadCount(token), api.notifications(token)]);
     setUnreadCount(count.unread_count);
     const unseen = notifications.filter(
-      (item) => !item.recipient?.read_at && !seenIdsRef.current.has(item.id),
+      (item) => !item.recipient?.popup_seen_at && !seenIdsRef.current.has(item.id),
     );
     unseen.forEach((item) => seenIdsRef.current.add(item.id));
     if (unseen.length) {
       pushNotificationPopups(unseen);
+      await Promise.all(unseen.map((item) => api.markNotificationPopupSeen(item.id, token)));
     }
   };
 
@@ -112,4 +113,3 @@ export function usePopups() {
   }
   return context;
 }
-
