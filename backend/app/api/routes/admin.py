@@ -668,15 +668,30 @@ def update_bonus_rule(
     rule = db.scalar(select(BonusRule).where(BonusRule.id == rule_id))
     if not rule:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bonus rule not found")
-    updates = payload.model_dump(exclude_none=True)
+    previous_tournament_id = rule.tournament_id
+    previous_round_id = rule.round_id
+    updates = payload.model_dump(exclude_unset=True)
     if "definition" in updates:
         validate_rule_definition(updates["definition"])
         updates["definition_jsonb"] = updates.pop("definition")
     for field, value in updates.items():
         setattr(rule, field, value)
+    if rule.scope_type == ScopeType.ROUND:
+        rule.tournament_id = None
+        if not rule.round_id:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="round_id is required")
+    if rule.scope_type == ScopeType.TOURNAMENT:
+        rule.round_id = None
+        if not rule.tournament_id:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="tournament_id is required")
     rule.updated_by_user_id = admin_user.id
     tournament_id = rule.tournament_id or get_round_or_404(db, rule.round_id).tournament_id
     recompute_bonus_rules(db, tournament_id=tournament_id, round_id=rule.round_id)
+    if previous_tournament_id and previous_tournament_id != tournament_id:
+        recompute_bonus_rules(db, tournament_id=previous_tournament_id, round_id=None)
+    if previous_round_id and previous_round_id != rule.round_id:
+        previous_round = get_round_or_404(db, previous_round_id)
+        recompute_bonus_rules(db, tournament_id=previous_round.tournament_id, round_id=previous_round.id)
     db.commit()
     db.refresh(rule)
     return rule
@@ -690,6 +705,22 @@ def delete_bonus_rule(rule_id: uuid.UUID, _: User = Depends(require_admin), db: 
     db.delete(rule)
     db.commit()
     return {"status": "ok"}
+
+
+@router.post("/bonus-rules/{rule_id}/reset-awards")
+def reset_bonus_rule_awards(rule_id: uuid.UUID, _: User = Depends(require_admin), db: Session = Depends(get_db)):
+    rule = db.scalar(select(BonusRule).where(BonusRule.id == rule_id))
+    if not rule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bonus rule not found")
+    now = datetime.now(timezone.utc)
+    awards = db.scalars(
+        select(BonusAward).where(BonusAward.bonus_rule_id == rule_id, BonusAward.revoked_at.is_(None))
+    ).all()
+    for award in awards:
+        award.revoked_at = now
+        award.revoked_reason = "Admin reset"
+    db.commit()
+    return {"status": "ok", "reset_awards": len(awards)}
 
 
 @router.get("/achievement-rules", response_model=list[AchievementRuleResponse])
