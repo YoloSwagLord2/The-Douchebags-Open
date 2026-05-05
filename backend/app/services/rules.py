@@ -10,6 +10,7 @@ ALLOWED_FIELDS = {
     "par",
     "round_holes_played",
     "round_net_strokes",
+    "round_net_par_streak",
     "round_stableford",
     "round_total_strokes",
     "stroke_index",
@@ -71,4 +72,3 @@ def evaluate_rule(definition: Mapping[str, Any], context: Mapping[str, Any]) -> 
     if operator == "in":
         return actual in expected
     return False
-

@@ -260,6 +260,12 @@ def _build_context(
     net_strokes = revision.new_strokes - handicap_map.get(revision.hole_id, 0)
     net_to_par = net_strokes - current_hole.par
     gross_to_par = revision.new_strokes - current_hole.par
+    round_net_par_streak = current_net_par_streak(
+        round_obj.course,
+        player_round_scores,
+        handicap_map,
+        ending_hole_id=revision.hole_id,
+    )
 
     return {
         "strokes": revision.new_strokes,
@@ -272,6 +278,7 @@ def _build_context(
         "round_holes_played": round_computed.totals.holes_played,
         "round_total_strokes": round_computed.totals.gross_strokes,
         "round_net_strokes": round_computed.totals.net_strokes,
+        "round_net_par_streak": round_net_par_streak,
         "round_stableford": round_computed.totals.official_stableford,
         "tournament_holes_played": tournament_holes_played,
         "tournament_total_strokes": tournament_gross,
@@ -281,6 +288,30 @@ def _build_context(
         "round_number": round_obj.round_number,
         "tournament_name": round_obj.tournament.name,
     }
+
+
+def current_net_par_streak(
+    course: Course,
+    scores_by_hole: dict[uuid.UUID, int],
+    handicap_map: dict[uuid.UUID, int],
+    *,
+    ending_hole_id: uuid.UUID,
+) -> int:
+    holes = sorted(course.holes, key=lambda item: item.hole_number)
+    ending_index = next((index for index, hole in enumerate(holes) if hole.id == ending_hole_id), None)
+    if ending_index is None:
+        return 0
+
+    streak = 0
+    for hole in reversed(holes[: ending_index + 1]):
+        strokes = scores_by_hole.get(hole.id)
+        if strokes is None:
+            break
+        net_to_par = strokes - handicap_map.get(hole.id, 0) - hole.par
+        if net_to_par != 0:
+            break
+        streak += 1
+    return streak
 
 
 def _notification_for_bonus(db: Session, award: BonusAward) -> None:

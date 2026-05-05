@@ -11,6 +11,7 @@ const FIELDS: RuleField[] = [
   "round_holes_played",
   "round_total_strokes",
   "round_net_strokes",
+  "round_net_par_streak",
   "round_stableford",
   "tournament_holes_played",
   "tournament_total_strokes",
@@ -155,4 +156,3 @@ export function RuleBuilder({ value, onChange }: Props) {
     </div>
   );
 }
-

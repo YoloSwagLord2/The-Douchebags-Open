@@ -6,6 +6,7 @@ from app.services.scoring import (
     apply_positions,
     calculate_playing_handicap,
     compute_round_totals,
+    current_net_par_streak,
     handicap_strokes_by_hole,
     stableford_points,
 )
@@ -50,6 +51,31 @@ def test_round_totals_include_net_and_official_stableford() -> None:
     assert computed.totals.gross_strokes > 0
     assert computed.totals.official_stableford >= 0
     assert computed.holes[0].strokes == course.holes[0].par
+
+
+def test_current_net_par_streak_counts_consecutive_net_pars_ending_on_current_hole() -> None:
+    course = build_course()
+    handicap_map = {hole.id: 0 for hole in course.holes}
+    scores = {
+        course.holes[0].id: course.holes[0].par,
+        course.holes[1].id: course.holes[1].par,
+        course.holes[2].id: course.holes[2].par,
+    }
+
+    assert current_net_par_streak(course, scores, handicap_map, ending_hole_id=course.holes[2].id) == 3
+
+
+def test_current_net_par_streak_resets_on_non_net_par_or_gap() -> None:
+    course = build_course()
+    handicap_map = {hole.id: 0 for hole in course.holes}
+    scores = {
+        course.holes[0].id: course.holes[0].par,
+        course.holes[1].id: course.holes[1].par + 1,
+        course.holes[2].id: course.holes[2].par,
+    }
+
+    assert current_net_par_streak(course, scores, handicap_map, ending_hole_id=course.holes[2].id) == 1
+    assert current_net_par_streak(course, {}, handicap_map, ending_hole_id=course.holes[2].id) == 0
 
 
 def test_leaderboard_positions_handle_ties() -> None:

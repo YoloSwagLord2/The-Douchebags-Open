@@ -19,6 +19,10 @@ def test_rule_validation_accepts_nested_groups() -> None:
     validate_rule_definition(definition)
 
 
+def test_rule_validation_accepts_net_par_streak_field() -> None:
+    validate_rule_definition({"field": "round_net_par_streak", "operator": "gte", "value": 3})
+
+
 def test_rule_engine_evaluates_predicates_and_groups() -> None:
     definition = {
         "op": "and",
@@ -30,4 +34,3 @@ def test_rule_engine_evaluates_predicates_and_groups() -> None:
     context = {"strokes": 11, "round_stableford": 5}
     assert evaluate_rule(definition, context) is True
     assert evaluate_rule(definition, {"strokes": 8, "round_stableford": 5}) is False
-
