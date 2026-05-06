@@ -8,6 +8,44 @@ import { usePopups } from "../lib/popups";
 import type { HoleScorecardResponse, ScorecardResponse } from "../lib/types";
 import { t } from "../lib/i18n";
 
+// Vincenty inverse formula on WGS84 ellipsoid — accurate to ~0.5mm
+function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const a = 6378137.0;
+  const b = 6356752.314245;
+  const f = 1 / 298.257223563;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+
+  const φ1 = toRad(lat1), φ2 = toRad(lat2);
+  const L = toRad(lng2 - lng1);
+  const tanU1 = (1 - f) * Math.tan(φ1), cosU1 = 1 / Math.sqrt(1 + tanU1 ** 2), sinU1 = tanU1 * cosU1;
+  const tanU2 = (1 - f) * Math.tan(φ2), cosU2 = 1 / Math.sqrt(1 + tanU2 ** 2), sinU2 = tanU2 * cosU2;
+
+  let λ = L, λʹ = 0, iter = 0;
+  let sinλ: number, cosλ: number, sinσ: number, cosσ: number, σ: number;
+  let sinα: number, cos2α: number, cos2σm: number, C: number;
+
+  do {
+    sinλ = Math.sin(λ); cosλ = Math.cos(λ);
+    sinσ = Math.sqrt((cosU2 * sinλ) ** 2 + (cosU1 * sinU2 - sinU1 * cosU2 * cosλ) ** 2);
+    if (sinσ === 0) return 0;
+    cosσ = sinU1 * sinU2 + cosU1 * cosU2 * cosλ;
+    σ = Math.atan2(sinσ, cosσ);
+    sinα = (cosU1 * cosU2 * sinλ) / sinσ;
+    cos2α = 1 - sinα ** 2;
+    cos2σm = cos2α !== 0 ? cosσ - (2 * sinU1 * sinU2) / cos2α : 0;
+    C = (f / 16) * cos2α * (4 + f * (4 - 3 * cos2α));
+    λʹ = λ;
+    λ = L + (1 - C) * f * sinα * (σ + C * sinσ * (cos2σm + C * cosσ * (-1 + 2 * cos2σm ** 2)));
+  } while (Math.abs(λ - λʹ) > 1e-12 && ++iter < 1000);
+
+  const u2 = cos2α! * (a ** 2 - b ** 2) / b ** 2;
+  const A2 = 1 + (u2 / 16384) * (4096 + u2 * (-768 + u2 * (320 - 175 * u2)));
+  const B2 = (u2 / 1024) * (256 + u2 * (-128 + u2 * (74 - 47 * u2)));
+  const Δσ = B2 * sinσ! * (cos2σm! + (B2 / 4) * (cosσ! * (-1 + 2 * cos2σm! ** 2) -
+    (B2 / 6) * cos2σm! * (-3 + 4 * sinσ! ** 2) * (-3 + 4 * cos2σm! ** 2)));
+  return b * A2 * (σ! - Δσ);
+}
+
 export function RoundEntryPage() {
   const { token } = useAuth();
   const { pushAchievementPopups, pushBonusPopups, refreshNotifications } = usePopups();
@@ -23,6 +61,36 @@ export function RoundEntryPage() {
   const [capturedMediaFile, setCapturedMediaFile] = useState<File | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const scorecardScrollRef = useRef<HTMLDivElement>(null);
+  const [gpsEnabled, setGpsEnabled] = useState(() => localStorage.getItem("gps_enabled") === "true");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem("gps_enabled", String(gpsEnabled));
+    if (!gpsEnabled) { setUserLocation(null); setGpsError(null); return; }
+    if (!navigator.geolocation) {
+      setGpsError("Geolocation not supported by this browser");
+      return;
+    }
+    const poll = () => {
+      if (document.visibilityState !== "visible") return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setGpsError(null);
+        },
+        (err) => setGpsError(`${err.message} (code ${err.code})`),
+        { enableHighAccuracy: true, timeout: 4000 },
+      );
+    };
+    poll();
+    const id = setInterval(poll, 5000);
+    document.addEventListener("visibilitychange", poll);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", poll);
+    };
+  }, [gpsEnabled]);
 
   useEffect(() => {
     if (!token || !roundId) return;
@@ -125,18 +193,51 @@ export function RoundEntryPage() {
             </button>
           ) : null}
           <div className="hole-stage__header">
-            <h3>{t('score.hole')} {currentHole.hole_number}</h3>
-            <div className="hole-stage__meta hole-stage__meta--stack">
-              <span>
-                {t('score.par')} {currentHole.par}
-                {currentHole.handicap_strokes > 0 && (
-                  <sup style={{ color: "var(--gold)", marginLeft: "0.15em" }}>
-                    +{currentHole.handicap_strokes}
-                  </sup>
-                )}
-              </span>
-              <span>{t('score.si')} {currentHole.stroke_index}</span>
-              <span>{currentHole.distance}m</span>
+            <div className="hole-stage__info">
+              <h3>{t('score.hole')} {currentHole.hole_number}</h3>
+              <div className="hole-stage__meta hole-stage__meta--stack">
+                <span>
+                  {t('score.par')} {currentHole.par}
+                  {currentHole.handicap_strokes > 0 && (
+                    <sup style={{ color: "var(--gold)", marginLeft: "0.15em" }}>
+                      +{currentHole.handicap_strokes}
+                    </sup>
+                  )}
+                </span>
+                <span>{t('score.si')} {currentHole.stroke_index}</span>
+                <span>{currentHole.distance}m</span>
+              </div>
+            </div>
+            <div className="hole-stage__gps">
+              <button
+                type="button"
+                className={`gps-toggle${gpsEnabled ? " gps-toggle--on" : ""}`}
+                onClick={() => setGpsEnabled((v) => !v)}
+                aria-label="Toggle distance to pin"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                  <circle cx="8" cy="8" r="3"/>
+                  <line x1="8" y1="0" x2="8" y2="4"/>
+                  <line x1="8" y1="12" x2="8" y2="16"/>
+                  <line x1="0" y1="8" x2="4" y2="8"/>
+                  <line x1="12" y1="8" x2="16" y2="8"/>
+                </svg>
+              </button>
+              {gpsEnabled && (
+                <div className="gps-distance">
+                  {userLocation && currentHole.pin_lat != null && currentHole.pin_lng != null ? (
+                    <span className="gps-distance__pin">
+                      {(() => { const d = distanceMeters(userLocation.lat, userLocation.lng, currentHole.pin_lat, currentHole.pin_lng); return d >= 1000 ? `${(d / 1000).toFixed(2)} km` : `${Math.round(d)}m`; })()} to pin
+                    </span>
+                  ) : (
+                    <span className="gps-distance__pin gps-distance__pin--waiting">
+                      {gpsError ? "err" : currentHole.pin_lat == null ? "no pin" : "…"}
+                    </span>
+                  )}
+                  <span className="gps-distance__coords">↔ {userLocation ? userLocation.lng.toFixed(5) : "—"}</span>
+                  <span className="gps-distance__coords">↕ {userLocation ? userLocation.lat.toFixed(5) : "—"}</span>
+                </div>
+              )}
             </div>
           </div>
           <div className="stroke-controls">

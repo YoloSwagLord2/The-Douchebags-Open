@@ -88,6 +88,8 @@ export interface HoleScorecardResponse {
   stableford_points?: number | null;
   handicap_strokes: number;
   image_url?: string | null;
+  pin_lat?: number | null;
+  pin_lng?: number | null;
 }
 
 export interface BonusUnlockResponse {

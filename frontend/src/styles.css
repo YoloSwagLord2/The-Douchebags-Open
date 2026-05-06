@@ -561,6 +561,64 @@ button {
   gap: 0.2rem;
 }
 
+.hole-stage__info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.hole-stage__gps {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  gap: 0.2rem;
+}
+
+.gps-toggle {
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  width: 2.2rem;
+  height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.gps-toggle--on {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+.gps-distance {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  font-size: 0.78rem;
+}
+
+.gps-distance__pin {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.gps-distance__pin--waiting {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.gps-distance__coords {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .leaderboard-table {
   display: grid;
   gap: 0.75rem;
@@ -2150,8 +2208,8 @@ button {
 
   .hole-stage__header {
     display: flex;
-    align-items: flex-end;
     justify-content: space-between;
+    align-items: flex-start;
     gap: 0.65rem;
   }
 

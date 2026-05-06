@@ -87,6 +87,8 @@ class Hole(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     stroke_index: Mapped[int] = mapped_column(Integer, nullable=False)
     distance: Mapped[int] = mapped_column(Integer, nullable=False)
     image_path: Mapped[str | None] = mapped_column(String(255))
+    pin_lat: Mapped[float | None] = mapped_column(nullable=True)
+    pin_lng: Mapped[float | None] = mapped_column(nullable=True)
 
     course: Mapped["Course"] = relationship(back_populates="holes")
     scores: Mapped[list["Score"]] = relationship(back_populates="hole")

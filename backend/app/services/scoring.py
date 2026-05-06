@@ -121,6 +121,8 @@ def compute_round_totals(course: Course, player_hcp: float, scores_by_hole: dict
                 stableford_points=stableford,
                 handicap_strokes=handicap_strokes,
                 image_url=hole.image_url,
+                pin_lat=hole.pin_lat,
+                pin_lng=hole.pin_lng,
             )
         )
 

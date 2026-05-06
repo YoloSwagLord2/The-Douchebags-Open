@@ -1,3 +1,4 @@
+import math
 from datetime import date, datetime, timedelta, timezone
 from sqlalchemy import select
 
@@ -7,6 +8,23 @@ from app.models.entities import Course, Hole, Tournament, TournamentPlayer, Roun
 from app.models.enums import UserRole, RoundStatus, ScoreChangeSource
 from app.services.auth import hash_password
 import random
+
+
+# Base: Ruimtzichtlaan 4, Apeldoorn, NL
+_PIN_BASE_LAT = 52.19954
+_PIN_BASE_LNG = 5.955528
+_PIN_ANGLES = [i * 20 for i in range(18)]
+_PIN_DISTANCES = [300, 600, 900, 1200, 1500, 1800, 400, 700, 1000, 1300, 1600, 500, 800, 1100, 1400, 1700, 200, 1900]
+
+
+def _geo_offset(lat: float, lng: float, bearing_deg: float, meters: float) -> tuple[float, float]:
+    R = 6371000
+    d = meters / R
+    b = math.radians(bearing_deg)
+    lat1, lng1 = math.radians(lat), math.radians(lng)
+    lat2 = math.asin(math.sin(lat1) * math.cos(d) + math.cos(lat1) * math.sin(d) * math.cos(b))
+    lng2 = lng1 + math.atan2(math.sin(b) * math.sin(d) * math.cos(lat1), math.cos(d) - math.sin(lat1) * math.sin(lat2))
+    return round(math.degrees(lat2), 6), round(math.degrees(lng2), 6)
 
 
 def main() -> None:
@@ -57,7 +75,7 @@ def main() -> None:
             ("St. Andrews", 148, 74.8),
         ]
 
-        for course_name, slope, rating in course_data:
+        for ci, (course_name, slope, rating) in enumerate(course_data):
             course = Course(
                 name=course_name,
                 slope_rating=slope,
@@ -70,13 +88,19 @@ def main() -> None:
             par_sequence = [4, 3, 4, 5, 4, 3, 4, 4, 5, 4, 3, 4, 5, 4, 3, 4, 4, 5]
             distances = [400, 180, 390, 540, 420, 170, 410, 430, 560, 430, 160, 400, 550, 410, 190, 420, 450, 580]
 
+            # Offset each course slightly so pins don't overlap
+            base_lat, base_lng = _geo_offset(_PIN_BASE_LAT, _PIN_BASE_LNG, 90 * ci, 60 * ci)
+
             for hole_num in range(1, 19):
+                pin_lat, pin_lng = _geo_offset(base_lat, base_lng, _PIN_ANGLES[hole_num - 1], _PIN_DISTANCES[hole_num - 1])
                 hole = Hole(
                     course_id=course.id,
                     hole_number=hole_num,
                     par=par_sequence[hole_num - 1],
                     stroke_index=hole_num,
                     distance=distances[hole_num - 1],
+                    pin_lat=pin_lat,
+                    pin_lng=pin_lng,
                 )
                 db.add(hole)
 

@@ -53,6 +53,8 @@ class HoleInput(BaseModel):
     par: int = Field(ge=3, le=7)
     stroke_index: int = Field(ge=0, le=19)
     distance: int = Field(ge=1)
+    pin_lat: float | None = None
+    pin_lng: float | None = None
 
 
 class HoleResponse(APIModel):
@@ -62,6 +64,8 @@ class HoleResponse(APIModel):
     stroke_index: int
     distance: int
     image_url: str | None = None
+    pin_lat: float | None = None
+    pin_lng: float | None = None
 
 
 class CourseCreate(BaseModel):
@@ -246,6 +250,8 @@ class HoleScorecardResponse(APIModel):
     stableford_points: int | None = None
     handicap_strokes: int = 0
     image_url: str | None = None
+    pin_lat: float | None = None
+    pin_lng: float | None = None
 
 
 class BonusUnlockResponse(APIModel):
