@@ -619,6 +619,35 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+.pin-set-btn {
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--gold);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.pin-set-btn:active {
+  background: rgba(255, 107, 157, 0.12);
+}
+.pin-set-btn--saving {
+  opacity: 0.5;
+  cursor: default;
+}
+.pin-set-btn--saved {
+  border-color: #4caf50;
+  color: #4caf50;
+}
+.pin-set-btn--error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 .leaderboard-table {
   display: grid;
   gap: 0.75rem;

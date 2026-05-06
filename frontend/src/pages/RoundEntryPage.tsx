@@ -47,7 +47,9 @@ function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number):
 }
 
 export function RoundEntryPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const canEditPins = user?.may_edit_pins === true;
   const { pushAchievementPopups, pushBonusPopups, refreshNotifications } = usePopups();
   const { roundId } = useParams();
   const [scorecard, setScorecard] = useState<ScorecardResponse | null>(null);
@@ -64,6 +66,7 @@ export function RoundEntryPage() {
   const [gpsEnabled, setGpsEnabled] = useState(() => localStorage.getItem("gps_enabled") === "true");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [pinSaving, setPinSaving] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
     localStorage.setItem("gps_enabled", String(gpsEnabled));
@@ -237,6 +240,38 @@ export function RoundEntryPage() {
                   <span className="gps-distance__coords">↔ {userLocation ? userLocation.lng.toFixed(5) : "—"}</span>
                   <span className="gps-distance__coords">↕ {userLocation ? userLocation.lat.toFixed(5) : "—"}</span>
                 </div>
+              )}
+              {canEditPins && gpsEnabled && userLocation !== null && (
+                <button
+                  type="button"
+                  className={`pin-set-btn${pinSaving === "saving" ? " pin-set-btn--saving" : pinSaving === "saved" ? " pin-set-btn--saved" : pinSaving === "error" ? " pin-set-btn--error" : ""}`}
+                  disabled={pinSaving === "saving"}
+                  onClick={async () => {
+                    if (!currentHole || pinSaving === "saving") return;
+                    setPinSaving("saving");
+                    try {
+                      await api.updateHolePin(currentHole.hole_id, userLocation.lat, userLocation.lng, token!);
+                      setScorecard((prev) => {
+                        if (!prev) return prev;
+                        return {
+                          ...prev,
+                          holes: prev.holes.map((h) =>
+                            h.hole_id === currentHole.hole_id
+                              ? { ...h, pin_lat: userLocation.lat, pin_lng: userLocation.lng }
+                              : h,
+                          ),
+                        };
+                      });
+                      setPinSaving("saved");
+                      setTimeout(() => setPinSaving("idle"), 2000);
+                    } catch {
+                      setPinSaving("error");
+                      setTimeout(() => setPinSaving("idle"), 2000);
+                    }
+                  }}
+                >
+                  {pinSaving === "saving" ? "…" : pinSaving === "saved" ? "Saved" : pinSaving === "error" ? "Error" : "Set pin here"}
+                </button>
               )}
             </div>
           </div>

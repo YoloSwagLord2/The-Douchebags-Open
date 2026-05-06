@@ -18,6 +18,7 @@ def _user_summary(user: User) -> UserSummary:
         email=user.email,
         role=user.role,
         hcp=float(user.hcp),
+        may_edit_pins=user.may_edit_pins,
         photo_avatar_url=f"/media/{user.photo_avatar_path}" if user.photo_avatar_path else None,
         photo_feature_url=f"/media/{user.photo_feature_path}" if user.photo_feature_path else None,
     )

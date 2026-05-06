@@ -4,7 +4,7 @@ import { useAuth } from "../lib/auth";
 import type { PlayerResponse } from "../lib/types";
 import { t, parseErrorMessage } from "../lib/i18n";
 
-const initialForm = { name: "", username: "", email: "", password: "", hcp: 18, role: "player" };
+const initialForm = { name: "", username: "", email: "", password: "", hcp: 18, role: "player", may_edit_pins: false };
 
 const playerInitials = (name: string) =>
   name
@@ -28,6 +28,7 @@ export function AdminPlayersPage() {
     hcp: 18,
     role: "player",
     is_active: true,
+    may_edit_pins: false,
     password: "",
   });
 
@@ -48,6 +49,7 @@ export function AdminPlayersPage() {
       hcp: selectedPlayer.hcp,
       role: selectedPlayer.role,
       is_active: selectedPlayer.is_active,
+      may_edit_pins: selectedPlayer.may_edit_pins,
       password: "",
     });
   }, [selectedPlayer]);
@@ -101,6 +103,14 @@ export function AdminPlayersPage() {
             <option value="player">{t('players.player')}</option>
             <option value="admin">{t('players.admin')}</option>
           </select>
+          <label className="selection-row">
+            <input
+              checked={form.may_edit_pins}
+              onChange={(event) => setForm({ ...form, may_edit_pins: event.target.checked })}
+              type="checkbox"
+            />
+            <span>May edit pins</span>
+          </label>
           {createError && <p className="form-error">{createError}</p>}
           <button className="button-primary" type="submit">{t('players.create')}</button>
         </form>
@@ -152,6 +162,14 @@ export function AdminPlayersPage() {
                 type="checkbox"
               />
               <span>{t('players.active')}</span>
+            </label>
+            <label className="selection-row">
+              <input
+                checked={editForm.may_edit_pins}
+                onChange={(event) => setEditForm({ ...editForm, may_edit_pins: event.target.checked })}
+                type="checkbox"
+              />
+              <span>May edit pins</span>
             </label>
             {editError && <p className="form-error">{editError}</p>}
             <button className="button-secondary" type="submit">{t('players.update')}</button>

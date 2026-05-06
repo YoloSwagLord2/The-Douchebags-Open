@@ -13,6 +13,7 @@ export interface UserSummary {
   email: string;
   role: UserRole;
   hcp: number;
+  may_edit_pins?: boolean;
   photo_avatar_url?: string | null;
   photo_feature_url?: string | null;
 }
@@ -234,6 +235,7 @@ export interface PlayerResponse {
   hcp: number;
   role: UserRole;
   is_active: boolean;
+  may_edit_pins: boolean;
   photo_avatar_url?: string | null;
   photo_feature_url?: string | null;
 }

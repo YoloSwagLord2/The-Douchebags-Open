@@ -196,6 +196,12 @@ export const api = {
   },
   deleteHoleImage: (holeId: string, token: string) =>
     request<CourseResponse>(`/admin/holes/${holeId}/image`, { method: "DELETE" }, token),
+  updateHolePin: (holeId: string, lat: number, lng: number, token: string) =>
+    request<{ status: string; pin_lat: number; pin_lng: number }>(
+      `/admin/holes/${holeId}/pin`,
+      { method: "PATCH", body: JSON.stringify({ pin_lat: lat, pin_lng: lng }) },
+      token,
+    ),
   tournamentOverview: (id: string, token: string) =>
     request<TournamentOverviewResponse>(`/leaderboards/tournaments/${id}/overview`, {}, token),
   adminTournaments: (token: string) => request<TournamentResponse[]>("/admin/tournaments", {}, token),

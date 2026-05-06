@@ -26,6 +26,7 @@ def user_summary(user: User) -> UserSummary:
         email=user.email,
         role=user.role,
         hcp=float(user.hcp),
+        may_edit_pins=user.may_edit_pins,
         photo_avatar_url=media_url(user.photo_avatar_path),
         photo_feature_url=media_url(user.photo_feature_path),
     )
@@ -47,6 +48,7 @@ def player_response(user: User) -> PlayerResponse:
         hcp=float(user.hcp),
         role=user.role,
         is_active=user.is_active,
+        may_edit_pins=user.may_edit_pins,
         photo_avatar_url=media_url(user.photo_avatar_path),
         photo_feature_url=media_url(user.photo_feature_path),
     )

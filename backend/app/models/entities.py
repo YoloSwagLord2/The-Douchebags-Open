@@ -53,6 +53,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     age: Mapped[int | None] = mapped_column(Integer, nullable=True)
     signature_move: Mapped[str | None] = mapped_column(Text, nullable=True)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
+    may_edit_pins: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     scores: Mapped[list["Score"]] = relationship(back_populates="player", foreign_keys="Score.player_id")
     roster_entries: Mapped[list["TournamentPlayer"]] = relationship(back_populates="player")

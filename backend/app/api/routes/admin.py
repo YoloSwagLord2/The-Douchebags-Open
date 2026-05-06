@@ -7,7 +7,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from app.api.deps import require_admin
+from app.api.deps import get_current_user, require_admin
 from app.db.session import get_db
 from app.models.entities import (
     AchievementEvent,
@@ -27,7 +27,7 @@ from app.models.entities import (
     TournamentPlayer,
     User,
 )
-from app.models.enums import NotificationSourceType, NotificationType, RoundStatus, ScopeType, ScoreChangeSource
+from app.models.enums import NotificationSourceType, NotificationType, RoundStatus, ScopeType, ScoreChangeSource, UserRole
 from app.schemas.api import (
     AchievementRuleCreate,
     AchievementRuleResponse,
@@ -312,6 +312,24 @@ async def upload_hole_image(
     hole.image_path = await store_hole_image(hole.id, file)
     db.commit()
     return _course_with_holes_or_404(db, hole.course_id)
+
+
+@router.patch("/holes/{hole_id}/pin")
+def update_hole_pin(
+    hole_id: uuid.UUID,
+    payload: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    if current_user.role != UserRole.ADMIN and not current_user.may_edit_pins:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Pin editing not allowed")
+    hole = db.scalar(select(Hole).where(Hole.id == hole_id))
+    if not hole:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hole not found")
+    hole.pin_lat = payload.get("pin_lat")
+    hole.pin_lng = payload.get("pin_lng")
+    db.commit()
+    return {"status": "ok", "pin_lat": hole.pin_lat, "pin_lng": hole.pin_lng}
 
 
 @router.delete("/holes/{hole_id}/image", response_model=CourseResponse)

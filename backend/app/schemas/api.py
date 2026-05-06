@@ -38,6 +38,7 @@ class UserSummary(APIModel):
     email: str
     role: UserRole
     hcp: float
+    may_edit_pins: bool = False
     photo_avatar_url: str | None = None
     photo_feature_url: str | None = None
 
@@ -109,6 +110,7 @@ class PlayerUpdate(BaseModel):
     hcp: float | None = Field(default=None, ge=0, le=54)
     role: UserRole | None = None
     is_active: bool | None = None
+    may_edit_pins: bool | None = None
 
 
 class PlayerResponse(APIModel):
@@ -118,6 +120,7 @@ class PlayerResponse(APIModel):
     hcp: float
     role: UserRole
     is_active: bool
+    may_edit_pins: bool = False
     photo_avatar_url: str | None = None
     photo_feature_url: str | None = None
 
