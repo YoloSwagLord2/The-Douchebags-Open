@@ -1,8 +1,11 @@
 import uuid
+from datetime import datetime, timezone
 
-from app.models.entities import Course, Hole
+from app.models.entities import Course, Hole, Score
+from app.models.enums import ScoreChangeSource
 from app.schemas.api import LeaderboardEntry
 from app.services.scoring import (
+    _backfill_missing_score_revisions,
     apply_positions,
     calculate_playing_handicap,
     compute_round_totals,
@@ -10,6 +13,30 @@ from app.services.scoring import (
     handicap_strokes_by_hole,
     stableford_points,
 )
+
+
+class _ScalarResult:
+    def __init__(self, items):
+        self._items = items
+
+    def all(self):
+        return self._items
+
+
+class _FakeSession:
+    def __init__(self, scores):
+        self.scores = scores
+        self.added = []
+        self.flushed = False
+
+    def scalars(self, _statement):
+        return _ScalarResult(self.scores)
+
+    def add(self, item):
+        self.added.append(item)
+
+    def flush(self):
+        self.flushed = True
 
 
 def build_course() -> Course:
@@ -76,6 +103,29 @@ def test_current_net_par_streak_resets_on_non_net_par_or_gap() -> None:
 
     assert current_net_par_streak(course, scores, handicap_map, ending_hole_id=course.holes[2].id) == 1
     assert current_net_par_streak(course, {}, handicap_map, ending_hole_id=course.holes[2].id) == 0
+
+
+def test_missing_score_revisions_are_backfilled_for_bonus_replay() -> None:
+    score = Score(
+        id=uuid.uuid4(),
+        round_id=uuid.uuid4(),
+        player_id=uuid.uuid4(),
+        hole_id=uuid.uuid4(),
+        strokes=10,
+        updated_by_user_id=uuid.uuid4(),
+        updated_at=datetime(2026, 5, 6, tzinfo=timezone.utc),
+    )
+    db = _FakeSession([score])
+
+    _backfill_missing_score_revisions(db, [score.round_id])
+
+    assert db.flushed is True
+    assert len(db.added) == 1
+    revision = db.added[0]
+    assert revision.score_id == score.id
+    assert revision.new_strokes == 10
+    assert revision.change_source == ScoreChangeSource.SYSTEM_RECOMPUTE
+    assert revision.created_at == score.updated_at
 
 
 def test_leaderboard_positions_handle_ties() -> None:

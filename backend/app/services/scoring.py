@@ -344,12 +344,39 @@ def _replay_scope_revisions(
     db: Session, rounds: list[Round]
 ) -> list[ScoreRevision]:
     round_ids = [round_obj.id for round_obj in rounds]
+    _backfill_missing_score_revisions(db, round_ids)
     revisions = db.scalars(
         select(ScoreRevision)
         .where(ScoreRevision.round_id.in_(round_ids))
         .order_by(ScoreRevision.created_at.asc(), ScoreRevision.id.asc())
     ).all()
     return revisions
+
+
+def _backfill_missing_score_revisions(db: Session, round_ids: list[uuid.UUID]) -> None:
+    if not round_ids:
+        return
+    missing_revision_scores = db.scalars(
+        select(Score)
+        .outerjoin(ScoreRevision, ScoreRevision.score_id == Score.id)
+        .where(Score.round_id.in_(round_ids), ScoreRevision.id.is_(None))
+    ).all()
+    for score in missing_revision_scores:
+        db.add(
+            ScoreRevision(
+                score_id=score.id,
+                round_id=score.round_id,
+                player_id=score.player_id,
+                hole_id=score.hole_id,
+                previous_strokes=None,
+                new_strokes=score.strokes,
+                change_source=ScoreChangeSource.SYSTEM_RECOMPUTE,
+                changed_by_user_id=score.updated_by_user_id,
+                created_at=score.updated_at or score.created_at or datetime.now(timezone.utc),
+            )
+        )
+    if missing_revision_scores:
+        db.flush()
 
 
 def recompute_bonus_rules(
