@@ -330,6 +330,14 @@ export function RoundEntryPage() {
           {saveError && <p className="form-error">{saveError}</p>}
           <div className="hole-stage__footer">
             <button
+              type="button"
+              className="button-ghost"
+              onClick={() => setCurrentIndex((value) => Math.max(0, value - 1))}
+              disabled={!hasPreviousHole}
+            >
+              {t('score.previous')}
+            </button>
+            <button
               aria-label={t("gallery.openCameraForHole")}
               type="button"
               className="button-secondary icon-button"
@@ -340,25 +348,16 @@ export function RoundEntryPage() {
             </button>
             <button
               type="button"
-              className="button-ghost"
-              onClick={() => setCurrentIndex((value) => Math.max(0, value - 1))}
-              disabled={!hasPreviousHole}
+              className="button-secondary"
+              onClick={() => setCurrentIndex((value) => Math.min(value + 1, (scorecard?.holes.length ?? 1) - 1))}
+              disabled={!hasNextHole}
             >
-              {t('score.previous')}
-            </button>
-            {hasNextHole ? (
-              <button
-                type="button"
-                className="button-secondary"
-                onClick={() => setCurrentIndex((value) => Math.min(value + 1, (scorecard?.holes.length ?? 1) - 1))}
-              >
-                {t('score.next')}
-              </button>
-            ) : null}
-            <button type="button" className="button-primary" onClick={saveCurrentHole} disabled={saving || !draftTouched || isLocked}>
-              {saving ? "Saving…" : t('score.saveAndContinue')}
+              {t('score.next')}
             </button>
           </div>
+          <button type="button" className="button-primary hole-stage__save" onClick={saveCurrentHole} disabled={saving || !draftTouched || isLocked}>
+            {saving ? "Saving…" : t('score.saveAndContinue')}
+          </button>
         </section>
       ) : (
         <div className="loading-state">{t('score.loading')}</div>

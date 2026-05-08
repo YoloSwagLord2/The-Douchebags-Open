@@ -37,10 +37,10 @@ function FeaturedLeader({ entry, onPlayerClick }: { entry?: LeaderboardEntry; on
         <p className="eyebrow">{t('leaderboard.currentNumber1')}</p>
         <h2>{entry.player_name}</h2>
         <div className="featured-leader__stats">
-          <span>{t('leaderboard.gross')} {entry.gross_strokes}</span>
-          <span>{t('leaderboard.net')} {entry.net_strokes}</span>
-          <span>{t('leaderboard.official')} {entry.official_stableford}</span>
-          <span>{t('leaderboard.bonus')} {entry.bonus_points}</span>
+          <div className="featured-leader__stat"><span className="featured-leader__stat-label">{t('leaderboard.gross')}</span><span className="featured-leader__stat-value">{entry.gross_strokes}</span></div>
+          <div className="featured-leader__stat"><span className="featured-leader__stat-label">{t('leaderboard.net')}</span><span className="featured-leader__stat-value">{entry.net_strokes}</span></div>
+          <div className="featured-leader__stat"><span className="featured-leader__stat-label">{t('score.stb')}</span><span className="featured-leader__stat-value">{entry.official_stableford}</span></div>
+          <div className="featured-leader__stat"><span className="featured-leader__stat-label">{t('leaderboard.bonus')}</span><span className="featured-leader__stat-value">{entry.bonus_points}</span></div>
         </div>
       </div>
     </section>
