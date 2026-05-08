@@ -5,10 +5,14 @@ import { t } from "../lib/i18n";
 export function ScorePage() {
   const { navigation } = useOutletContext<{ navigation: NavigationTournament[] }>();
 
-  const latestRound = navigation[0]?.rounds[0];
+  const today = new Date().toISOString().slice(0, 10);
+  const allRounds = navigation.flatMap((tn) => tn.rounds.map((r) => ({ ...r, tournamentId: tn.id })));
+  const pastOrToday = allRounds.filter((r) => r.date <= today).sort((a, b) => b.date.localeCompare(a.date));
+  const future = allRounds.filter((r) => r.date > today).sort((a, b) => a.date.localeCompare(b.date));
+  const bestRound = pastOrToday[0] ?? future[0];
 
-  if (latestRound) {
-    return <Navigate replace to={`/round/${latestRound.id}/entry`} />;
+  if (bestRound) {
+    return <Navigate replace to={`/round/${bestRound.id}/entry`} />;
   }
 
   return (

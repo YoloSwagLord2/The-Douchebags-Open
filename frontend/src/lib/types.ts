@@ -252,6 +252,8 @@ export interface CourseResponse {
     stroke_index: number;
     distance: number;
     image_url?: string | null;
+    pin_lat?: number | null;
+    pin_lng?: number | null;
   }>;
 }
 

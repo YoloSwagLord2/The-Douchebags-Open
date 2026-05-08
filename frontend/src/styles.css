@@ -832,6 +832,45 @@ button {
   gap: 1rem;
 }
 
+.hole-stage__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.score-round-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.score-round-picker__label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.score-round-picker__arrow {
+  font-size: 0.7rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.score-round-picker__select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+}
+
 .hole-image-wrap {
   width: 100%;
   aspect-ratio: 16 / 9;

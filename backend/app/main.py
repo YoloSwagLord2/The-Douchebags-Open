@@ -43,4 +43,4 @@ if static_root.is_dir():
         candidate = static_root / full_path
         if candidate.is_file():
             return FileResponse(candidate)
-        return FileResponse(spa_index)
+        return FileResponse(spa_index, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})

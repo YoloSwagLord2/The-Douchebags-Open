@@ -11,12 +11,14 @@ type HoleRow = {
   stroke_index: number;
   distance: number;
   image_url?: string | null;
+  pin_lat?: number | null;
+  pin_lng?: number | null;
 };
 
 const MIN_STROKE_INDEX = 0;
 const MAX_STROKE_INDEX = 19;
 
-const blankHole = (index: number): HoleRow => ({ hole_number: index + 1, par: 4, stroke_index: index + 1, distance: 320 });
+const blankHole = (index: number): HoleRow => ({ hole_number: index + 1, par: 4, stroke_index: index + 1, distance: 320, pin_lat: null, pin_lng: null });
 
 const normalizeHoleRows = (rows: HoleRow[], count: number): HoleRow[] =>
   Array.from({ length: count }, (_, index) => {
@@ -146,6 +148,22 @@ function HoleEditor({
               onChange={(e) => setHoles((cur) => cur.map((h, i) => i === index ? { ...h, distance: Number(e.target.value) } : h))}
             />
           </label>
+          <label className="field-label">
+            Pin latitude
+            <input
+              type="number" step="any" placeholder="e.g. 52.3740"
+              value={hole.pin_lat ?? ""}
+              onChange={(e) => setHoles((cur) => cur.map((h, i) => i === index ? { ...h, pin_lat: e.target.value === "" ? null : Number(e.target.value) } : h))}
+            />
+          </label>
+          <label className="field-label">
+            Pin longitude
+            <input
+              type="number" step="any" placeholder="e.g. 4.8897"
+              value={hole.pin_lng ?? ""}
+              onChange={(e) => setHoles((cur) => cur.map((h, i) => i === index ? { ...h, pin_lng: e.target.value === "" ? null : Number(e.target.value) } : h))}
+            />
+          </label>
           {token && onCourseUpdate && (
             <HoleImageField hole={hole} token={token} onCourseUpdate={onCourseUpdate} />
           )}
@@ -202,6 +220,8 @@ export function AdminCoursesPage() {
         stroke_index: h.stroke_index,
         distance: h.distance,
         image_url: h.image_url ?? null,
+        pin_lat: h.pin_lat ?? null,
+        pin_lng: h.pin_lng ?? null,
       }));
     setEditHoleCount(courseHoles.length || 18);
     setEditHoles(courseHoles);
@@ -233,11 +253,13 @@ export function AdminCoursesPage() {
     setEditSuccess(false);
     try {
       await api.updateCourse(selectedCourseId, { name: editName, slope_rating: editSlope, course_rating: editRating }, token);
-      const holesPayload = editHoles.map(({ hole_number, par, stroke_index, distance }) => ({
+      const holesPayload = editHoles.map(({ hole_number, par, stroke_index, distance, pin_lat, pin_lng }) => ({
         hole_number,
         par,
         stroke_index,
         distance,
+        pin_lat: pin_lat ?? null,
+        pin_lng: pin_lng ?? null,
       }));
       await api.replaceCourseHoles(selectedCourseId, holesPayload, token);
       setEditSuccess(true);
@@ -257,6 +279,8 @@ export function AdminCoursesPage() {
         stroke_index: h.stroke_index,
         distance: h.distance,
         image_url: h.image_url ?? null,
+        pin_lat: h.pin_lat ?? null,
+        pin_lng: h.pin_lng ?? null,
       }));
 
     setCourses((cur) => cur.map((c) => (c.id === updated.id ? updated : c)));

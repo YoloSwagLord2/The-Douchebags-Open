@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { CameraIcon } from "../components/CameraIcon";
 import { GalleryUploadModal } from "../components/GalleryUploadModal";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { usePopups } from "../lib/popups";
-import type { HoleScorecardResponse, ScorecardResponse } from "../lib/types";
+import type { HoleScorecardResponse, NavigationTournament, ScorecardResponse } from "../lib/types";
 import { t } from "../lib/i18n";
 
 // Vincenty inverse formula on WGS84 ellipsoid — accurate to ~0.5mm
@@ -52,6 +52,9 @@ export function RoundEntryPage() {
   const canEditPins = user?.may_edit_pins === true;
   const { pushAchievementPopups, pushBonusPopups, refreshNotifications } = usePopups();
   const { roundId } = useParams();
+  const navigate = useNavigate();
+  const { navigation } = useOutletContext<{ navigation: NavigationTournament[] }>();
+  const allRounds = navigation.flatMap((tn) => tn.rounds.map((r) => ({ ...r, tournamentName: tn.name })));
   const [scorecard, setScorecard] = useState<ScorecardResponse | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [draftStroke, setDraftStroke] = useState<number>(4);
@@ -165,22 +168,32 @@ export function RoundEntryPage() {
 
   return (
     <div className="stack-layout score-entry-layout">
-      <section className="masthead-panel score-entry-masthead">
-        <div>
-          <p className="eyebrow">{scorecard?.round.tournament_name} • {roundName}</p>
-          <h2>{t('score.enterScores')}</h2>
-          <p className="hero-subtitle">
-            Tap + or − to set your strokes, then press Save and continue after each hole.
-          </p>
-        </div>
-        <div className="score-chip">{progress}</div>
-      </section>
-
       {currentHole ? (
         <section className="hole-stage">
-          {courseName && (
-            <p className="score-course-label">{roundName} • {courseName}</p>
-          )}
+          <div className="hole-stage__topbar">
+            {allRounds.length > 1 ? (
+              <div className="score-round-picker">
+                <span className="score-round-picker__label">
+                  {scorecard?.round.tournament_name ?? "—"} · {roundName}{courseName ? ` • ${courseName}` : ""}
+                </span>
+                <span className="score-round-picker__arrow">▾</span>
+                <select
+                  className="score-round-picker__select"
+                  value={roundId ?? ""}
+                  onChange={(e) => navigate(`/round/${e.target.value}/entry`)}
+                  aria-label="Switch round"
+                >
+                  {allRounds.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.tournamentName} · {r.name?.trim() || `Round ${r.round_number}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              courseName && <p className="score-course-label">{roundName} • {courseName}</p>
+            )}
+          </div>
           {currentHole.image_url ? (
             <button
               className="hole-image-wrap"
