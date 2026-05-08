@@ -413,6 +413,18 @@ button {
   margin: 0;
 }
 
+.round-locked-notice {
+  margin: 0;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.6rem;
+  background: rgba(255, 108, 95, 0.12);
+  border: 1px solid rgba(255, 108, 95, 0.3);
+  color: var(--danger);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
+
 .admin-score-editor {
   align-content: start;
 }

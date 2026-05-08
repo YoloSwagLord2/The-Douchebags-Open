@@ -70,6 +70,7 @@ export function RoundEntryPage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [pinSaving, setPinSaving] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const isLocked = scorecard?.round.status === "locked";
 
   useEffect(() => {
     localStorage.setItem("gps_enabled", String(gpsEnabled));
@@ -289,7 +290,7 @@ export function RoundEntryPage() {
             </div>
           </div>
           <div className="stroke-controls">
-            <button type="button" onClick={() => {
+            <button type="button" disabled={isLocked} onClick={() => {
               if (!draftTouched) { setDraftTouched(true); setDraftStroke(currentHole.par); }
               else setDraftStroke((v) => Math.max(1, v - 1));
             }}>
@@ -298,6 +299,9 @@ export function RoundEntryPage() {
             <input
               inputMode="numeric"
               type="number"
+              min={1}
+              max={25}
+              disabled={isLocked}
               value={draftTouched ? draftStroke : ""}
               placeholder="?"
               onChange={(event) => {
@@ -307,17 +311,22 @@ export function RoundEntryPage() {
                   setDraftStroke(currentHole.par);
                   return;
                 }
+                const parsed = Number(nextValue);
+                if (isNaN(parsed) || parsed < 1 || parsed > 25) return;
                 setDraftTouched(true);
-                setDraftStroke(Number(nextValue));
+                setDraftStroke(parsed);
               }}
             />
-            <button type="button" onClick={() => {
+            <button type="button" disabled={isLocked} onClick={() => {
               if (!draftTouched) { setDraftTouched(true); setDraftStroke(currentHole.par); }
-              else setDraftStroke((v) => v + 1);
+              else setDraftStroke((v) => Math.min(25, v + 1));
             }}>
               +
             </button>
           </div>
+          {isLocked && (
+            <p className="round-locked-notice">{t('score.roundLocked')}</p>
+          )}
           {saveError && <p className="form-error">{saveError}</p>}
           <div className="hole-stage__footer">
             <button
@@ -346,7 +355,7 @@ export function RoundEntryPage() {
                 {t('score.next')}
               </button>
             ) : null}
-            <button type="button" className="button-primary" onClick={saveCurrentHole} disabled={saving || !draftTouched}>
+            <button type="button" className="button-primary" onClick={saveCurrentHole} disabled={saving || !draftTouched || isLocked}>
               {saving ? "Saving…" : t('score.saveAndContinue')}
             </button>
           </div>

@@ -238,6 +238,9 @@ export interface PlayerResponse {
   may_edit_pins: boolean;
   photo_avatar_url?: string | null;
   photo_feature_url?: string | null;
+  age?: number | null;
+  bio?: string | null;
+  signature_move?: string | null;
 }
 
 export interface CourseResponse {

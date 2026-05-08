@@ -15,8 +15,8 @@ type HoleRow = {
   pin_lng?: number | null;
 };
 
-const MIN_STROKE_INDEX = 0;
-const MAX_STROKE_INDEX = 19;
+const MIN_STROKE_INDEX = 1;
+const MAX_STROKE_INDEX = 18;
 
 const blankHole = (index: number): HoleRow => ({ hole_number: index + 1, par: 4, stroke_index: index + 1, distance: 320, pin_lat: null, pin_lng: null });
 

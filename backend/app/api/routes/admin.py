@@ -419,7 +419,8 @@ def update_roster(
             )
     db.execute(delete(TournamentPlayer).where(TournamentPlayer.tournament_id == tournament_id))
     for player_id in next_player_ids:
-        db.add(TournamentPlayer(tournament_id=tournament_id, player_id=player_id))
+        player_obj = db.get(User, player_id)
+        db.add(TournamentPlayer(tournament_id=tournament_id, player_id=player_id, hcp=float(player_obj.hcp) if player_obj else None))
     if removed_player_ids:
         round_ids = db.scalars(select(Round.id).where(Round.tournament_id == tournament_id)).all()
         if round_ids:

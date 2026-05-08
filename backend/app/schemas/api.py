@@ -52,7 +52,7 @@ class AuthResponse(APIModel):
 class HoleInput(BaseModel):
     hole_number: int = Field(ge=1, le=36)
     par: int = Field(ge=3, le=7)
-    stroke_index: int = Field(ge=0, le=19)
+    stroke_index: int = Field(ge=1, le=18)
     distance: int = Field(ge=1)
     pin_lat: float | None = None
     pin_lng: float | None = None
@@ -111,6 +111,9 @@ class PlayerUpdate(BaseModel):
     role: UserRole | None = None
     is_active: bool | None = None
     may_edit_pins: bool | None = None
+    age: int | None = Field(default=None, ge=1, le=120)
+    bio: str | None = None
+    signature_move: str | None = None
 
 
 class PlayerResponse(APIModel):
@@ -123,6 +126,9 @@ class PlayerResponse(APIModel):
     may_edit_pins: bool = False
     photo_avatar_url: str | None = None
     photo_feature_url: str | None = None
+    age: int | None = None
+    bio: str | None = None
+    signature_move: str | None = None
 
 
 class PlayerDetailResponse(APIModel):

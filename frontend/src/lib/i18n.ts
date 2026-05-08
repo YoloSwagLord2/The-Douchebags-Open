@@ -124,6 +124,7 @@ const translations = {
     'score.next': 'Next',
     'score.saveAndContinue': 'Save and continue',
     'score.loading': 'Loading hole data…',
+    'score.roundLocked': 'Round locked',
 
     // Gallery
     'gallery.eyebrow': 'Event gallery',
@@ -368,6 +369,7 @@ const translations = {
     'score.next': 'Volgende',
     'score.saveAndContinue': 'Opslaan en doorgaan',
     'score.loading': 'Holegegevens laden…',
+    'score.roundLocked': 'Ronde gesloten',
 
     // Gallery
     'gallery.eyebrow': 'Event galerij',

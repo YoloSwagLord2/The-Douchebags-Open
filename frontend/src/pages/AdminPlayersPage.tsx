@@ -30,6 +30,9 @@ export function AdminPlayersPage() {
     is_active: true,
     may_edit_pins: false,
     password: "",
+    age: "" as number | "",
+    bio: "",
+    signature_move: "",
   });
 
   const load = async () => {
@@ -51,6 +54,9 @@ export function AdminPlayersPage() {
       is_active: selectedPlayer.is_active,
       may_edit_pins: selectedPlayer.may_edit_pins,
       password: "",
+      age: selectedPlayer.age ?? "",
+      bio: selectedPlayer.bio ?? "",
+      signature_move: selectedPlayer.signature_move ?? "",
     });
   }, [selectedPlayer]);
 
@@ -80,6 +86,9 @@ export function AdminPlayersPage() {
     try {
       const payload: Record<string, unknown> = { ...editForm };
       if (!editForm.password) delete payload.password;
+      if (editForm.age === "") delete payload.age;
+      if (!editForm.bio) delete payload.bio;
+      if (!editForm.signature_move) delete payload.signature_move;
       await api.updateAdminPlayer(selectedPlayerId, payload, token);
       setEditForm((f) => ({ ...f, password: "" }));
       await load();
@@ -147,29 +156,32 @@ export function AdminPlayersPage() {
         </label>
         {selectedPlayer ? (
           <form className="stack-form" onSubmit={updateSelectedPlayer}>
-            <input placeholder={t('players.name')} value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} />
-            <input placeholder={t('auth.email')} type="email" value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} />
-            <input placeholder={t('players.newPassword')} type="password" value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} />
-            <input placeholder={t('players.hcp')} type="number" value={editForm.hcp} onChange={(event) => setEditForm({ ...editForm, hcp: Number(event.target.value) })} />
-            <select value={editForm.role} onChange={(event) => setEditForm({ ...editForm, role: event.target.value })}>
-              <option value="player">{t('players.player')}</option>
-              <option value="admin">{t('players.admin')}</option>
-            </select>
+            <label className="field-label">{t('players.name')}<input value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} /></label>
+            <label className="field-label">{t('auth.email')}<input type="email" value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} /></label>
+            <label className="field-label">{t('players.newPassword')}<input type="password" value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} /></label>
+            <label className="field-label">{t('players.hcp')}<input type="number" value={editForm.hcp} onChange={(event) => setEditForm({ ...editForm, hcp: Number(event.target.value) })} /></label>
+            <label className="field-label">Role
+              <select value={editForm.role} onChange={(event) => setEditForm({ ...editForm, role: event.target.value })}>
+                <option value="player">{t('players.player')}</option>
+                <option value="admin">{t('players.admin')}</option>
+              </select>
+            </label>
             <label className="selection-row">
-              <input
-                checked={editForm.is_active}
-                onChange={(event) => setEditForm({ ...editForm, is_active: event.target.checked })}
-                type="checkbox"
-              />
+              <input checked={editForm.is_active} onChange={(event) => setEditForm({ ...editForm, is_active: event.target.checked })} type="checkbox" />
               <span>{t('players.active')}</span>
             </label>
             <label className="selection-row">
-              <input
-                checked={editForm.may_edit_pins}
-                onChange={(event) => setEditForm({ ...editForm, may_edit_pins: event.target.checked })}
-                type="checkbox"
-              />
+              <input checked={editForm.may_edit_pins} onChange={(event) => setEditForm({ ...editForm, may_edit_pins: event.target.checked })} type="checkbox" />
               <span>May edit pins</span>
+            </label>
+            <label className="field-label">Age
+              <input type="number" min={1} max={120} value={editForm.age} onChange={(event) => setEditForm({ ...editForm, age: event.target.value === "" ? "" : Number(event.target.value) })} />
+            </label>
+            <label className="field-label">Bio
+              <textarea value={editForm.bio} rows={3} onChange={(event) => setEditForm({ ...editForm, bio: event.target.value })} />
+            </label>
+            <label className="field-label">Signature move
+              <input value={editForm.signature_move} onChange={(event) => setEditForm({ ...editForm, signature_move: event.target.value })} />
             </label>
             {editError && <p className="form-error">{editError}</p>}
             <button className="button-secondary" type="submit">{t('players.update')}</button>

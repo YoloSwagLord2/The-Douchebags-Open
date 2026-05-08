@@ -51,6 +51,9 @@ def player_response(user: User) -> PlayerResponse:
         may_edit_pins=user.may_edit_pins,
         photo_avatar_url=media_url(user.photo_avatar_path),
         photo_feature_url=media_url(user.photo_feature_path),
+        age=user.age,
+        bio=user.bio,
+        signature_move=user.signature_move,
     )
 
 

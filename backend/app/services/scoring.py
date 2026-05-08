@@ -58,6 +58,16 @@ def _round_half_up(value: float) -> int:
     return int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
+def _locked_hcp(db: Session, tournament_id: uuid.UUID, player: User) -> float:
+    tp = db.scalar(
+        select(TournamentPlayer).where(
+            TournamentPlayer.tournament_id == tournament_id,
+            TournamentPlayer.player_id == player.id,
+        )
+    )
+    return float(tp.hcp) if tp and tp.hcp is not None else float(player.hcp)
+
+
 def calculate_playing_handicap(player_hcp: float, course: Course) -> int:
     course_par = sum(hole.par for hole in course.holes)
     raw = float(player_hcp) * (course.slope_rating / 113) + (float(course.course_rating) - course_par)
@@ -83,8 +93,9 @@ def stableford_points(net_to_par: int) -> int:
 def handicap_strokes_by_hole(course: Course, player_hcp: float) -> dict[uuid.UUID, int]:
     ordered_holes = sorted(course.holes, key=lambda hole: hole.stroke_index)
     playing_handicap = calculate_playing_handicap(player_hcp, course)
-    base = playing_handicap // 18
-    extra = playing_handicap % 18
+    n = len(ordered_holes)
+    base = playing_handicap // n if n else 0
+    extra = playing_handicap % n if n else 0
     allocation: dict[uuid.UUID, int] = {}
     for index, hole in enumerate(ordered_holes, start=1):
         allocation[hole.id] = base + (1 if index <= extra else 0)
@@ -233,7 +244,7 @@ def _build_context(
         for (round_id, player_id, hole_id), strokes in score_state.items()
         if round_id == revision.round_id and player_id == revision.player_id
     }
-    round_computed = compute_round_totals(round_obj.course, float(player.hcp), player_round_scores)
+    round_computed = compute_round_totals(round_obj.course, _locked_hcp(db, round_obj.tournament_id, player), player_round_scores)
 
     tournament_scores: dict[uuid.UUID, int] = {}
     for tournament_round in rounds_by_tournament[round_obj.tournament_id]:
@@ -252,13 +263,13 @@ def _build_context(
             for hole in tournament_round.course.holes
             if (tournament_round.id, revision.player_id, hole.id) in score_state
         }
-        computed = compute_round_totals(tournament_round.course, float(player.hcp), hole_scores)
+        computed = compute_round_totals(tournament_round.course, _locked_hcp(db, round_obj.tournament_id, player), hole_scores)
         tournament_gross += computed.totals.gross_strokes
         tournament_net += computed.totals.net_strokes
         tournament_stableford += computed.totals.official_stableford
         tournament_holes_played += computed.totals.holes_played
 
-    handicap_map = handicap_strokes_by_hole(round_obj.course, float(player.hcp))
+    handicap_map = handicap_strokes_by_hole(round_obj.course, _locked_hcp(db, round_obj.tournament_id, player))
     net_strokes = revision.new_strokes - handicap_map.get(revision.hole_id, 0)
     net_to_par = net_strokes - current_hole.par
     gross_to_par = revision.new_strokes - current_hole.par
@@ -588,7 +599,7 @@ def build_round_leaderboard(db: Session, round_obj: Round) -> list[LeaderboardEn
     official_entries: list[LeaderboardEntry] = []
     for player in roster_players:
         scores = get_player_scores(db, round_obj.id, player.id)
-        computed = compute_round_totals(round_obj.course, float(player.hcp), scores)
+        computed = compute_round_totals(round_obj.course, _locked_hcp(db, round_obj.tournament_id, player), scores)
         bonus_points = get_active_bonus_points_for_round(
             db,
             player_id=player.id,
@@ -640,7 +651,7 @@ def build_tournament_leaderboard(db: Session, tournament_id: uuid.UUID) -> tuple
             if player.id not in player_ids_by_round[round_obj.id]:
                 continue
             scores = get_player_scores(db, round_obj.id, player.id)
-            computed = compute_round_totals(round_obj.course, float(player.hcp), scores)
+            computed = compute_round_totals(round_obj.course, _locked_hcp(db, tournament_id, player), scores)
             gross_total += computed.totals.gross_strokes
             net_total += computed.totals.net_strokes
             official_stableford += computed.totals.official_stableford
@@ -741,7 +752,7 @@ def build_tournament_overview(db: Session, tournament_id: uuid.UUID) -> Tourname
                 round_results.append(PlayerRoundResult(round_id=round_obj.id, holes_played=0, stableford=0))
                 continue
             scores = get_player_scores(db, round_obj.id, player.id)
-            computed = compute_round_totals(round_obj.course, float(player.hcp), scores)
+            computed = compute_round_totals(round_obj.course, _locked_hcp(db, tournament_id, player), scores)
             round_results.append(PlayerRoundResult(
                 round_id=round_obj.id,
                 holes_played=computed.totals.holes_played,

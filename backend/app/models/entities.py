@@ -156,6 +156,7 @@ class TournamentPlayer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     tournament_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tournaments.id", ondelete="CASCADE"))
     player_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    hcp: Mapped[float | None] = mapped_column(nullable=True)
 
     tournament: Mapped["Tournament"] = relationship(back_populates="players")
     player: Mapped["User"] = relationship(back_populates="roster_entries")
