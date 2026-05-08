@@ -181,11 +181,11 @@ const translations = {
     'leaderboard.selectToView': 'Select a tournament above to view the leaderboard.',
     'leaderboard.noRoundsYet': 'No rounds have been set up for this tournament yet.',
     'leaderboard.noPlayersYet': 'No players assigned to this tournament yet.',
-    'leaderboard.official': 'Stableford',
-    'leaderboard.bonus': 'Bonus',
+    'leaderboard.official': 'STB',
+    'leaderboard.bonus': 'BNS',
     'leaderboard.bonusAdj': 'Bonus Adj.',
     'leaderboard.net': 'Net',
-    'leaderboard.gross': 'Gross',
+    'leaderboard.gross': 'GRS',
 
     // Bonuses
     'bonuses.eyebrow': 'Secret wins',
@@ -426,7 +426,7 @@ const translations = {
     'leaderboard.selectToView': 'Selecteer een toernooi hierboven om de ranglijst te bekijken.',
     'leaderboard.noRoundsYet': 'Nog geen rondes aangemaakt voor dit toernooi.',
     'leaderboard.noPlayersYet': 'Nog geen spelers toegewezen aan dit toernooi.',
-    'leaderboard.official': 'Stableford',
+    'leaderboard.official': 'STB',
     'leaderboard.bonus': 'Bonus',
     'leaderboard.bonusAdj': 'Bonus Tot.',
     'leaderboard.net': 'Netto',
