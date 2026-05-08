@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { RuleBuilder } from "../components/RuleBuilder";
-import type { BonusAnimationPreset, BonusRuleResponse, NavigationTournament, RuleNode } from "../lib/types";
+import type { BonusAnimationPreset, BonusRuleResponse, RoundResponse, RuleNode, TournamentResponse } from "../lib/types";
 import { t } from "../lib/i18n";
 
 const initialRule: RuleNode = { op: "and", conditions: [{ field: "strokes", operator: "gte", value: 10 }] };
@@ -18,7 +18,8 @@ function cloneRule(node: RuleNode): RuleNode {
 export function AdminBonusRulesPage() {
   const { token } = useAuth();
   const [rules, setRules] = useState<BonusRuleResponse[]>([]);
-  const [navigation, setNavigation] = useState<NavigationTournament[]>([]);
+  const [tournaments, setTournaments] = useState<TournamentResponse[]>([]);
+  const [rounds, setRounds] = useState<RoundResponse[]>([]);
   const [scopeType, setScopeType] = useState<"round" | "tournament">("round");
   const [scopeId, setScopeId] = useState("");
   const [name, setName] = useState("");
@@ -28,16 +29,25 @@ export function AdminBonusRulesPage() {
   const [lottieUrl, setLottieUrl] = useState("");
   const [definition, setDefinition] = useState<RuleNode>(() => cloneRule(initialRule));
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = async () => {
     if (!token) return;
-    const [ruleData, nav] = await Promise.all([api.adminBonusRules(token), api.navigation(token)]);
+    setLoadError(null);
+    const [ruleData, tournamentData, roundData] = await Promise.all([
+      api.adminBonusRules(token),
+      api.adminTournaments(token),
+      api.adminRounds(token),
+    ]);
     setRules(ruleData);
-    setNavigation(nav);
+    setTournaments(tournamentData);
+    setRounds(roundData);
   };
 
   useEffect(() => {
-    load().catch(() => undefined);
+    load().catch((err) => {
+      setLoadError(err instanceof Error ? err.message : "Failed to load bonus rule scopes");
+    });
   }, [token]);
 
   const resetForm = () => {
@@ -96,31 +106,44 @@ export function AdminBonusRulesPage() {
     await load();
   };
 
+  const tournamentNameById = new Map(tournaments.map((item) => [item.id, item.name]));
+  const scopeOptions =
+    scopeType === "tournament"
+      ? tournaments.map((item) => ({ id: item.id, label: item.name }))
+      : rounds.map((round) => ({
+          id: round.id,
+          label: `${tournamentNameById.get(round.tournament_id) ?? "Tournament"} • ${displayRoundName(round)}`,
+        }));
+
   return (
     <div className="admin-grid">
       <section className="detail-panel">
         <p className="eyebrow">{t('bonusRules.eyebrow')}</p>
         <h2>{editingRuleId ? "Edit bonus rule" : t('bonusRules.createTitle')}</h2>
+        {loadError ? <p className="form-error">{loadError}</p> : null}
         <form className="stack-form" onSubmit={submit}>
           <input required placeholder="Rule name" value={name} onChange={(event) => setName(event.target.value)} />
-          <select value={scopeType} onChange={(event) => setScopeType(event.target.value as "round" | "tournament")}>
+          <select
+            value={scopeType}
+            onChange={(event) => {
+              setScopeType(event.target.value as "round" | "tournament");
+              setScopeId("");
+            }}
+          >
             <option value="round">{t('bonusRules.scopeRound')}</option>
             <option value="tournament">{t('bonusRules.scopeTournament')}</option>
           </select>
           <select required value={scopeId} onChange={(event) => setScopeId(event.target.value)}>
             <option value="">{t('bonusRules.selectScope')}</option>
-            {scopeType === "tournament"
-              ? navigation.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))
-              : navigation.flatMap((item) =>
-                  item.rounds.map((round) => (
-                    <option key={round.id} value={round.id}>
-                      {item.name} • {displayRoundName(round)}
-                    </option>
-                  )),
-                )}
+            {scopeOptions.map((item) => (
+              <option key={item.id} value={item.id}>{item.label}</option>
+            ))}
           </select>
+          {!loadError && !scopeOptions.length ? (
+            <p className="muted-copy">
+              {scopeType === "round" ? "Create a round before adding a round-scoped bonus." : "Create a tournament before adding a tournament-scoped bonus."}
+            </p>
+          ) : null}
           <input min={1} required type="number" value={points} onChange={(event) => setPoints(Number(event.target.value))} />
           <textarea required placeholder="Winner message" value={message} onChange={(event) => setMessage(event.target.value)} />
           <select value={preset} onChange={(event) => setPreset(event.target.value as BonusAnimationPreset)}>

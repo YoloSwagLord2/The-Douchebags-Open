@@ -209,6 +209,8 @@ export const api = {
     request<TournamentResponse>("/admin/tournaments", { method: "POST", body: JSON.stringify(payload) }, token),
   updateTournament: (id: string, payload: Record<string, unknown>, token: string) =>
     request<TournamentResponse>(`/admin/tournaments/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
+  deleteTournament: (id: string, token: string) =>
+    request<{ status: string }>(`/admin/tournaments/${id}`, { method: "DELETE" }, token),
   updateRoster: (id: string, player_ids: string[], token: string) =>
     request<{ status: string }>(`/admin/tournaments/${id}/players`, { method: "PUT", body: JSON.stringify({ player_ids }) }, token),
   adminRounds: (token: string) => request<RoundResponse[]>("/admin/rounds", {}, token),
@@ -216,6 +218,8 @@ export const api = {
     request<RoundResponse>("/admin/rounds", { method: "POST", body: JSON.stringify(payload) }, token),
   updateRound: (id: string, payload: Record<string, unknown>, token: string) =>
     request<RoundResponse>(`/admin/rounds/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
+  deleteRound: (id: string, token: string) =>
+    request<{ status: string }>(`/admin/rounds/${id}`, { method: "DELETE" }, token),
   lockRound: (id: string, token: string) =>
     request<RoundResponse>(`/admin/rounds/${id}/lock`, { method: "POST" }, token),
   adminOverrideScorecard: (roundId: string, playerId: string, scores: Array<{ hole_id: string; strokes: number }>, token: string) =>

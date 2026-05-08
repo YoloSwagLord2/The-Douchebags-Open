@@ -133,6 +133,26 @@ export function AdminTournamentsPage() {
     }
   };
 
+  const deleteTournament = async () => {
+    if (!token || !selectedTournament) return;
+    const confirmed = window.confirm(`Delete "${selectedTournament.name}" and all of its rounds? This cannot be undone.`);
+    if (!confirmed) return;
+    setCreateError(null);
+    setRosterError(null);
+    setRoundError(null);
+    setRoundSuccess(null);
+    try {
+      await api.deleteTournament(selectedTournament.id, token);
+      setSelectedTournamentId("");
+      setSelectedPlayers([]);
+      setRoundDrafts({});
+      setRoundForm({ name: "", course_id: "", date: "", player_ids: [] });
+      await load();
+    } catch (err) {
+      setRoundError(err instanceof Error ? err.message : "Failed to delete tournament");
+    }
+  };
+
   const createRound = async (event: FormEvent) => {
     event.preventDefault();
     if (!token || !selectedTournamentId) return;
@@ -185,6 +205,26 @@ export function AdminTournamentsPage() {
     }
   };
 
+  const deleteRound = async (round: RoundResponse) => {
+    if (!token) return;
+    const confirmed = window.confirm(`Delete "${roundLabel(round)}"? This cannot be undone.`);
+    if (!confirmed) return;
+    setRoundError(null);
+    setRoundSuccess(null);
+    try {
+      await api.deleteRound(round.id, token);
+      setRoundDrafts((current) => {
+        const next = { ...current };
+        delete next[round.id];
+        return next;
+      });
+      setRoundSuccess("Round deleted");
+      await load();
+    } catch (err) {
+      setRoundError(err instanceof Error ? err.message : "Failed to delete round");
+    }
+  };
+
   const tournamentRounds = rounds
     .filter((r) => r.tournament_id === selectedTournamentId)
     .sort((a, b) => a.round_number - b.round_number);
@@ -209,6 +249,11 @@ export function AdminTournamentsPage() {
             ))}
           </select>
         </label>
+        {selectedTournament ? (
+          <button className="button-ghost" onClick={deleteTournament} type="button">
+            Delete event
+          </button>
+        ) : null}
       </section>
 
       {/* Left: Create new tournament */}
@@ -357,13 +402,18 @@ export function AdminTournamentsPage() {
                             {round.date} · {course?.name ?? "Unknown course"}
                           </p>
                         </div>
-                        {round.status === "locked" ? (
-                          <span className="button-ghost" style={{ cursor: "default", opacity: 0.5 }}>Locked</span>
-                        ) : (
-                          <button className="button-ghost" onClick={() => lockRound(round.id)} type="button">
-                            Lock round
+                        <div className="form-actions" style={{ justifyContent: "flex-end" }}>
+                          {round.status === "locked" ? (
+                            <span className="button-ghost" style={{ cursor: "default", opacity: 0.5 }}>Locked</span>
+                          ) : (
+                            <button className="button-ghost" onClick={() => lockRound(round.id)} type="button">
+                              Lock round
+                            </button>
+                          )}
+                          <button className="button-ghost" onClick={() => deleteRound(round)} type="button">
+                            Delete round
                           </button>
-                        )}
+                        </div>
                       </div>
                       <div className="stack-form" style={{ marginTop: "1rem" }}>
                         <label className="field-label">
@@ -420,9 +470,14 @@ export function AdminTournamentsPage() {
                             ))}
                           </div>
                         </div>
-                        <button className="button-secondary" disabled={draft.player_ids.length === 0} onClick={() => saveRound(round.id)} type="button">
-                          Save round
-                        </button>
+                        <div className="form-actions">
+                          <button className="button-secondary" disabled={draft.player_ids.length === 0} onClick={() => saveRound(round.id)} type="button">
+                            Save round
+                          </button>
+                          <button className="button-ghost" onClick={() => deleteRound(round)} type="button">
+                            Delete round
+                          </button>
+                        </div>
                       </div>
                     </article>
                   );

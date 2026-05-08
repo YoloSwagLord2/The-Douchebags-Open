@@ -103,6 +103,24 @@ export function AdminRoundsPage() {
     }
   };
 
+  const deleteRound = async (round: RoundResponse) => {
+    if (!token) return;
+    const confirmed = window.confirm(`Delete "${displayRoundName(round)}"? This cannot be undone.`);
+    if (!confirmed) return;
+    try {
+      await api.deleteRound(round.id, token);
+      if (selectedRoundId === round.id) {
+        setSelectedRoundId("");
+        setSelectedPlayerId("");
+        setScorecard(null);
+        setDraftScores({});
+      }
+      await load();
+    } catch (err) {
+      setScoreError(err instanceof Error ? err.message : "Failed to delete round");
+    }
+  };
+
   return (
     <div className="admin-grid">
       <section className="detail-panel">
@@ -131,9 +149,14 @@ export function AdminRoundsPage() {
             <article className="detail-panel detail-panel--nested" key={round.id}>
               <strong>{displayRoundName(round)}</strong>
               <p>{round.date}</p>
-              <button className="button-ghost" onClick={() => token && api.lockRound(round.id, token).then(load)} type="button">
-                {round.status === "locked" ? t('rounds.locked') : t('rounds.lock')}
-              </button>
+              <div className="form-actions">
+                <button className="button-ghost" onClick={() => token && api.lockRound(round.id, token).then(load)} type="button">
+                  {round.status === "locked" ? t('rounds.locked') : t('rounds.lock')}
+                </button>
+                <button className="button-ghost" onClick={() => deleteRound(round)} type="button">
+                  Delete round
+                </button>
+              </div>
             </article>
           ))}
         </div>
