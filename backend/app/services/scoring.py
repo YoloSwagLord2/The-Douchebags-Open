@@ -70,8 +70,11 @@ def _locked_hcp(db: Session, tournament_id: uuid.UUID, player: User) -> float:
 
 def calculate_playing_handicap(player_hcp: float, course: Course) -> int:
     course_par = sum(hole.par for hole in course.holes)
-    raw = float(player_hcp) * (course.slope_rating / 113) + (float(course.course_rating) - course_par)
-    return max(0, _round_half_up(raw))
+    hole_count = len(course.holes)
+    handicap_allowance = 0.95
+    round_handicap = float(player_hcp) * (hole_count / 18)
+    raw = (round_handicap * (course.slope_rating / 113) + (float(course.course_rating) - course_par)) * handicap_allowance
+    return _round_half_up(raw)
 
 
 def stableford_points(net_to_par: int) -> int:
@@ -94,11 +97,17 @@ def handicap_strokes_by_hole(course: Course, player_hcp: float) -> dict[uuid.UUI
     ordered_holes = sorted(course.holes, key=lambda hole: hole.stroke_index)
     playing_handicap = calculate_playing_handicap(player_hcp, course)
     n = len(ordered_holes)
-    base = playing_handicap // n if n else 0
-    extra = playing_handicap % n if n else 0
+    stroke_count = abs(playing_handicap)
+    base = stroke_count // n if n else 0
+    extra = stroke_count % n if n else 0
+    direction = 1 if playing_handicap >= 0 else -1
     allocation: dict[uuid.UUID, int] = {}
     for index, hole in enumerate(ordered_holes, start=1):
-        allocation[hole.id] = base + (1 if index <= extra else 0)
+        if direction > 0:
+            receives_extra = index <= extra
+        else:
+            receives_extra = index > n - extra
+        allocation[hole.id] = direction * (base + (1 if receives_extra else 0))
     return allocation
 
 

@@ -48,7 +48,6 @@ function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number):
 
 export function RoundEntryPage() {
   const { token, user } = useAuth();
-  const isAdmin = user?.role === "admin";
   const canEditPins = user?.may_edit_pins === true;
   const { pushAchievementPopups, pushBonusPopups, refreshNotifications } = usePopups();
   const { roundId } = useParams();
@@ -148,7 +147,6 @@ export function RoundEntryPage() {
   };
 
   const currentHole = hole as HoleScorecardResponse | undefined;
-  const progress = scorecard ? `${currentIndex + 1}/${scorecard.holes.length}` : "0/0";
   const totals = scorecard?.totals;
   const hasPreviousHole = currentIndex > 0;
   const hasNextHole = scorecard ? currentIndex < scorecard.holes.length - 1 : false;

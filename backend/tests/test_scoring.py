@@ -54,6 +54,22 @@ def build_course() -> Course:
     return course
 
 
+def build_nine_hole_course() -> Course:
+    pars = [3, 4, 3, 3, 3, 4, 4, 3, 4]
+    course = Course(id=uuid.uuid4(), name="Par 3-ish Nine", slope_rating=113, course_rating=sum(pars))
+    course.holes = [
+        Hole(
+            id=uuid.uuid4(),
+            hole_number=index,
+            par=par,
+            stroke_index=index,
+            distance=150 + index * 5,
+        )
+        for index, par in enumerate(pars, start=1)
+    ]
+    return course
+
+
 def test_stableford_mapping() -> None:
     assert stableford_points(-4) == 6
     assert stableford_points(-2) == 4
@@ -67,6 +83,30 @@ def test_handicap_allocation_uses_stroke_index_order() -> None:
     allocation = handicap_strokes_by_hole(course, 18)
     assert sum(allocation.values()) == calculate_playing_handicap(18, course)
     assert allocation[course.holes[0].id] >= allocation[course.holes[-1].id]
+
+
+def test_nine_hole_stableford_scales_eighteen_hole_handicap() -> None:
+    course = build_nine_hole_course()
+    strokes = [5, 5, 4, 4, 4, 5, 5, 4, 4]
+    scores = {hole.id: stroke for hole, stroke in zip(course.holes, strokes, strict=True)}
+
+    computed = compute_round_totals(course, 18, scores)
+
+    assert sum(hole.handicap_strokes for hole in computed.holes) == 9
+    assert [hole.stableford_points for hole in computed.holes] == [1, 2, 2, 2, 2, 2, 2, 2, 3]
+    assert computed.totals.official_stableford == 18
+
+
+def test_plus_handicap_gives_strokes_back_from_easiest_holes() -> None:
+    course = build_course()
+    course.slope_rating = 113
+    course.course_rating = sum(hole.par for hole in course.holes)
+
+    allocation = handicap_strokes_by_hole(course, -4)
+
+    assert sum(allocation.values()) == -4
+    assert allocation[course.holes[0].id] == 0
+    assert allocation[course.holes[-1].id] == -1
 
 
 def test_round_totals_include_net_and_official_stableford() -> None:
