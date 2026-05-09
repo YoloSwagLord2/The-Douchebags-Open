@@ -5,17 +5,28 @@ import type { BonusAnimationPreset } from "../lib/types";
 interface Props {
   preset: BonusAnimationPreset;
   lottieUrl?: string | null;
+  className?: string;
+  onComplete?: () => void;
 }
 
 const DEFAULT_LOTTIE_URL = "/lotties/zaad.json";
 
-export function LottieOrPreset({ preset, lottieUrl }: Props) {
+export function LottieOrPreset({ preset, lottieUrl, className = "", onComplete }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const onCompleteRef = useRef(onComplete);
   const resolvedLottieUrl = lottieUrl || DEFAULT_LOTTIE_URL;
 
   useEffect(() => {
-    if (!resolvedLottieUrl || !containerRef.current) return;
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
+    if (!resolvedLottieUrl || !containerRef.current) {
+      onCompleteRef.current?.();
+      return;
+    }
     let animation: ReturnType<typeof lottie.loadAnimation> | undefined;
+    const handleComplete = () => onCompleteRef.current?.();
     fetch(resolvedLottieUrl)
       .then((response) => response.json())
       .then((data) => {
@@ -27,15 +38,17 @@ export function LottieOrPreset({ preset, lottieUrl }: Props) {
           loop: resolvedLottieUrl !== DEFAULT_LOTTIE_URL,
           animationData: data,
         });
+        animation.addEventListener("complete", handleComplete);
       })
-      .catch(() => undefined);
+      .catch(() => onCompleteRef.current?.());
     return () => {
+      animation?.removeEventListener("complete", handleComplete);
       animation?.destroy();
     };
   }, [resolvedLottieUrl]);
 
   if (resolvedLottieUrl) {
-    return <div className={`lottie-shell lottie-shell--${preset}`} ref={containerRef} />;
+    return <div className={`lottie-shell lottie-shell--${preset} ${className}`.trim()} ref={containerRef} />;
   }
 
   return (
