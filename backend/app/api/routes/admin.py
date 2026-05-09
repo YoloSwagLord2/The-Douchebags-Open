@@ -685,12 +685,6 @@ def create_bonus_rule(payload: BonusRuleCreate, admin_user: User = Depends(requi
         updated_by_user_id=admin_user.id,
     )
     db.add(rule)
-    db.flush()
-    if rule.tournament_id:
-        recompute_bonus_rules(db, tournament_id=rule.tournament_id, round_id=rule.round_id)
-    else:
-        round_obj = get_round_or_404(db, rule.round_id)
-        recompute_bonus_rules(db, tournament_id=round_obj.tournament_id, round_id=rule.round_id)
     db.commit()
     db.refresh(rule)
     return rule
@@ -723,13 +717,18 @@ def update_bonus_rule(
         if not rule.tournament_id:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="tournament_id is required")
     rule.updated_by_user_id = admin_user.id
-    tournament_id = rule.tournament_id or get_round_or_404(db, rule.round_id).tournament_id
-    recompute_bonus_rules(db, tournament_id=tournament_id, round_id=rule.round_id)
-    if previous_tournament_id and previous_tournament_id != tournament_id:
-        recompute_bonus_rules(db, tournament_id=previous_tournament_id, round_id=None)
-    if previous_round_id and previous_round_id != rule.round_id:
-        previous_round = get_round_or_404(db, previous_round_id)
-        recompute_bonus_rules(db, tournament_id=previous_round.tournament_id, round_id=previous_round.id)
+    if updates:
+        now = datetime.now(timezone.utc)
+        awards = db.scalars(
+            select(BonusAward).where(BonusAward.bonus_rule_id == rule.id, BonusAward.revoked_at.is_(None))
+        ).all()
+        for award in awards:
+            award.revoked_at = now
+            award.revoked_reason = (
+                "Rule scope changed"
+                if previous_tournament_id != rule.tournament_id or previous_round_id != rule.round_id
+                else "Rule changed"
+            )
     db.commit()
     db.refresh(rule)
     return rule

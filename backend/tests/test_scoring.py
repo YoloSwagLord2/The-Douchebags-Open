@@ -1,11 +1,12 @@
 import uuid
 from datetime import datetime, timezone
 
-from app.models.entities import Course, Hole, Score
-from app.models.enums import ScoreChangeSource
+from app.models.entities import BonusRule, Course, Hole, Score, ScoreRevision
+from app.models.enums import BonusAnimationPreset, ScopeType, ScoreChangeSource
 from app.schemas.api import LeaderboardEntry
 from app.services.scoring import (
     _backfill_missing_score_revisions,
+    _bonus_revision_can_trigger,
     apply_positions,
     calculate_playing_handicap,
     compute_round_totals,
@@ -166,6 +167,50 @@ def test_missing_score_revisions_are_backfilled_for_bonus_replay() -> None:
     assert revision.new_strokes == 10
     assert revision.change_source == ScoreChangeSource.SYSTEM_RECOMPUTE
     assert revision.created_at == score.updated_at
+
+
+def test_bonus_revisions_only_trigger_after_rule_activation() -> None:
+    rule = BonusRule(
+        id=uuid.uuid4(),
+        name="Fresh score only",
+        scope_type=ScopeType.ROUND,
+        round_id=uuid.uuid4(),
+        points=1,
+        winner_message="Fresh",
+        definition_jsonb={"field": "strokes", "operator": "gte", "value": 10},
+        animation_preset=BonusAnimationPreset.CONFETTI,
+        created_by_user_id=uuid.uuid4(),
+        updated_by_user_id=uuid.uuid4(),
+        created_at=datetime(2026, 5, 10, 12, tzinfo=timezone.utc),
+        updated_at=datetime(2026, 5, 10, 12, tzinfo=timezone.utc),
+    )
+    base_revision = ScoreRevision(
+        id=uuid.uuid4(),
+        score_id=uuid.uuid4(),
+        round_id=rule.round_id,
+        player_id=uuid.uuid4(),
+        hole_id=uuid.uuid4(),
+        previous_strokes=None,
+        new_strokes=10,
+        change_source=ScoreChangeSource.PLAYER_SAVE,
+        changed_by_user_id=uuid.uuid4(),
+        created_at=datetime(2026, 5, 10, 12, tzinfo=timezone.utc),
+    )
+    later_revision = ScoreRevision(
+        id=uuid.uuid4(),
+        score_id=uuid.uuid4(),
+        round_id=rule.round_id,
+        player_id=uuid.uuid4(),
+        hole_id=uuid.uuid4(),
+        previous_strokes=None,
+        new_strokes=10,
+        change_source=ScoreChangeSource.PLAYER_SAVE,
+        changed_by_user_id=uuid.uuid4(),
+        created_at=datetime(2026, 5, 10, 12, 1, tzinfo=timezone.utc),
+    )
+
+    assert _bonus_revision_can_trigger(rule, base_revision) is False
+    assert _bonus_revision_can_trigger(rule, later_revision) is True
 
 
 def test_leaderboard_positions_handle_ties() -> None:

@@ -399,6 +399,11 @@ def _backfill_missing_score_revisions(db: Session, round_ids: list[uuid.UUID]) -
         db.flush()
 
 
+def _bonus_revision_can_trigger(rule: BonusRule, revision: ScoreRevision) -> bool:
+    rule_started_at = rule.updated_at or rule.created_at
+    return not rule_started_at or revision.created_at > rule_started_at
+
+
 def recompute_bonus_rules(
     db: Session,
     *,
@@ -447,6 +452,8 @@ def recompute_bonus_rules(
                 continue
 
             state[(revision.round_id, revision.player_id, revision.hole_id)] = revision.new_strokes
+            if not _bonus_revision_can_trigger(rule, revision):
+                continue
             context = _build_context(current_round, revision, state, player_lookup, rounds_by_tournament)
             if evaluate_rule(rule.definition_jsonb, context):
                 winner_revision = revision
