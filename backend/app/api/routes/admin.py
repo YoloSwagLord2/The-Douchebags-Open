@@ -272,6 +272,12 @@ def replace_holes(
                 detail="Course has scores on removed holes; create a new course instead",
             )
 
+    # Temporarily offset stroke_index on existing holes to avoid unique constraint
+    # conflicts when swapping values across multiple UPDATE statements.
+    for hole in course.holes:
+        hole.stroke_index = 10000 + hole.hole_number
+    db.flush()
+
     for hole_payload in holes:
         existing_hole = existing_by_number.get(hole_payload.hole_number)
         if existing_hole:
@@ -417,19 +423,32 @@ def update_roster(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Tournament roster has scores for removed players; keep them assigned to preserve score history",
             )
+    added_player_ids = next_player_ids - existing_player_ids
     db.execute(delete(TournamentPlayer).where(TournamentPlayer.tournament_id == tournament_id))
     for player_id in next_player_ids:
         player_obj = db.get(User, player_id)
         db.add(TournamentPlayer(tournament_id=tournament_id, player_id=player_id, hcp=float(player_obj.hcp) if player_obj else None))
-    if removed_player_ids:
-        round_ids = db.scalars(select(Round.id).where(Round.tournament_id == tournament_id)).all()
-        if round_ids:
-            db.execute(
-                delete(RoundPlayer).where(
-                    RoundPlayer.round_id.in_(round_ids),
-                    RoundPlayer.player_id.in_(removed_player_ids),
-                )
+    round_ids = db.scalars(select(Round.id).where(Round.tournament_id == tournament_id)).all()
+    if removed_player_ids and round_ids:
+        db.execute(
+            delete(RoundPlayer).where(
+                RoundPlayer.round_id.in_(round_ids),
+                RoundPlayer.player_id.in_(removed_player_ids),
             )
+        )
+    if added_player_ids and round_ids:
+        existing_round_players = set(
+            db.scalars(
+                select(RoundPlayer.player_id).where(
+                    RoundPlayer.round_id.in_(round_ids),
+                    RoundPlayer.player_id.in_(added_player_ids),
+                )
+            ).all()
+        )
+        for round_id in round_ids:
+            for player_id in added_player_ids:
+                if player_id not in existing_round_players:
+                    db.add(RoundPlayer(round_id=round_id, player_id=player_id))
     db.commit()
     return {"status": "ok"}
 
