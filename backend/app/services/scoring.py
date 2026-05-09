@@ -239,6 +239,7 @@ def build_round_meta(round_obj: Round) -> RoundMeta:
 
 
 def _build_context(
+    db: Session,
     round_obj: Round,
     revision: ScoreRevision,
     score_state: dict[tuple[uuid.UUID, uuid.UUID, uuid.UUID], int],
@@ -454,7 +455,7 @@ def recompute_bonus_rules(
             state[(revision.round_id, revision.player_id, revision.hole_id)] = revision.new_strokes
             if not _bonus_revision_can_trigger(rule, revision):
                 continue
-            context = _build_context(current_round, revision, state, player_lookup, rounds_by_tournament)
+            context = _build_context(db, current_round, revision, state, player_lookup, rounds_by_tournament)
             if evaluate_rule(rule.definition_jsonb, context):
                 winner_revision = revision
                 winner_round = current_round
@@ -539,7 +540,7 @@ def recompute_achievement_rules(
                 continue
 
             state[(revision.round_id, revision.player_id, revision.hole_id)] = revision.new_strokes
-            context = _build_context(current_round, revision, state, player_lookup, rounds_by_tournament)
+            context = _build_context(db, current_round, revision, state, player_lookup, rounds_by_tournament)
             if evaluate_rule(rule.definition_jsonb, context):
                 player_name = player_lookup[revision.player_id].name
                 occurrence_key = str(revision.id)

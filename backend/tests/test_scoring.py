@@ -1,12 +1,13 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from app.models.entities import BonusRule, Course, Hole, Score, ScoreRevision
+from app.models.entities import BonusRule, Course, Hole, Round, Score, ScoreRevision, Tournament, User
 from app.models.enums import BonusAnimationPreset, ScopeType, ScoreChangeSource
 from app.schemas.api import LeaderboardEntry
 from app.services.scoring import (
     _backfill_missing_score_revisions,
     _bonus_revision_can_trigger,
+    _build_context,
     apply_positions,
     calculate_playing_handicap,
     compute_round_totals,
@@ -211,6 +212,70 @@ def test_bonus_revisions_only_trigger_after_rule_activation() -> None:
 
     assert _bonus_revision_can_trigger(rule, base_revision) is False
     assert _bonus_revision_can_trigger(rule, later_revision) is True
+
+
+def test_rule_context_uses_supplied_db_for_locked_handicap(monkeypatch) -> None:
+    course = build_nine_hole_course()
+    tournament = Tournament(
+        id=uuid.uuid4(),
+        name="Fresh Bonus Open",
+        date=date(2026, 5, 10),
+    )
+    round_obj = Round(
+        id=uuid.uuid4(),
+        tournament_id=tournament.id,
+        course_id=course.id,
+        round_number=1,
+        name="Round 1",
+        date=tournament.date,
+        tournament=tournament,
+        course=course,
+    )
+    player = User(
+        id=uuid.uuid4(),
+        name="Player One",
+        username="player-one",
+        email="player@example.com",
+        password_hash="test",
+        hcp=0,
+    )
+    revision = ScoreRevision(
+        id=uuid.uuid4(),
+        score_id=uuid.uuid4(),
+        round_id=round_obj.id,
+        player_id=player.id,
+        hole_id=course.holes[0].id,
+        previous_strokes=None,
+        new_strokes=course.holes[0].par,
+        change_source=ScoreChangeSource.PLAYER_SAVE,
+        changed_by_user_id=player.id,
+        created_at=datetime(2026, 5, 10, 12, 1, tzinfo=timezone.utc),
+    )
+    fake_db = object()
+    seen_db = None
+
+    def fake_locked_hcp(db, tournament_id, user):
+        nonlocal seen_db
+        seen_db = db
+        assert tournament_id == tournament.id
+        assert user == player
+        return 0
+
+    monkeypatch.setattr("app.services.scoring._locked_hcp", fake_locked_hcp)
+
+    context = _build_context(
+        fake_db,
+        round_obj,
+        revision,
+        {(round_obj.id, player.id, course.holes[0].id): course.holes[0].par},
+        {player.id: player},
+        {tournament.id: [round_obj]},
+    )
+
+    assert seen_db is fake_db
+    assert context["strokes"] == course.holes[0].par
+    assert context["net_to_par"] == 0
+    assert context["round_stableford"] == 2
 
 
 def test_leaderboard_positions_handle_ties() -> None:

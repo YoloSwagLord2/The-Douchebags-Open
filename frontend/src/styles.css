@@ -531,7 +531,7 @@ button {
 }
 
 .bottom-nav--admin {
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(9, minmax(0, 1fr));
 }
 
 .bottom-nav--player {
@@ -2473,7 +2473,7 @@ button {
   }
 
   .bottom-nav--admin {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(9, minmax(0, 1fr));
   }
 
   .bottom-nav--player {
