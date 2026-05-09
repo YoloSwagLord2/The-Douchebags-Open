@@ -31,6 +31,11 @@ const OPERATOR_LABELS: Record<RuleOperator, string> = {
   in: "in list",
 };
 
+function parseRuleValue(value: string) {
+  const numeric = Number(value);
+  return Number.isNaN(numeric) || value.trim() === "" ? value.trim() : numeric;
+}
+
 interface Props {
   value: RuleNode;
   onChange: (value: RuleNode) => void;
@@ -67,7 +72,7 @@ function PredicateEditor({ node, onChange }: { node: Extract<RuleNode, { field: 
             ...node,
             value:
               node.operator === "in"
-                ? event.target.value.split(",").map((item) => item.trim())
+                ? event.target.value.split(",").map(parseRuleValue)
                 : Number.isNaN(Number(event.target.value))
                   ? event.target.value
                   : Number(event.target.value),

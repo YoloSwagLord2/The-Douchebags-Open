@@ -7,13 +7,16 @@ interface Props {
   lottieUrl?: string | null;
 }
 
+const DEFAULT_LOTTIE_URL = "/lotties/zaad.json";
+
 export function LottieOrPreset({ preset, lottieUrl }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const resolvedLottieUrl = lottieUrl || DEFAULT_LOTTIE_URL;
 
   useEffect(() => {
-    if (!lottieUrl || !containerRef.current) return;
+    if (!resolvedLottieUrl || !containerRef.current) return;
     let animation: ReturnType<typeof lottie.loadAnimation> | undefined;
-    fetch(lottieUrl)
+    fetch(resolvedLottieUrl)
       .then((response) => response.json())
       .then((data) => {
         if (!containerRef.current) return;
@@ -21,7 +24,7 @@ export function LottieOrPreset({ preset, lottieUrl }: Props) {
           container: containerRef.current,
           renderer: "svg",
           autoplay: true,
-          loop: true,
+          loop: resolvedLottieUrl !== DEFAULT_LOTTIE_URL,
           animationData: data,
         });
       })
@@ -29,10 +32,10 @@ export function LottieOrPreset({ preset, lottieUrl }: Props) {
     return () => {
       animation?.destroy();
     };
-  }, [lottieUrl]);
+  }, [resolvedLottieUrl]);
 
-  if (lottieUrl) {
-    return <div className="lottie-shell" ref={containerRef} />;
+  if (resolvedLottieUrl) {
+    return <div className={`lottie-shell lottie-shell--${preset}`} ref={containerRef} />;
   }
 
   return (
@@ -43,4 +46,3 @@ export function LottieOrPreset({ preset, lottieUrl }: Props) {
     </div>
   );
 }
-

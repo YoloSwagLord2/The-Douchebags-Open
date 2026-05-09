@@ -34,3 +34,10 @@ def test_rule_engine_evaluates_predicates_and_groups() -> None:
     context = {"strokes": 11, "round_stableford": 5}
     assert evaluate_rule(definition, context) is True
     assert evaluate_rule(definition, {"strokes": 8, "round_stableford": 5}) is False
+
+
+def test_rule_engine_matches_numeric_context_against_string_list_values() -> None:
+    definition = {"field": "hole_number", "operator": "in", "value": ["1", "9"]}
+
+    assert evaluate_rule(definition, {"hole_number": 9}) is True
+    assert evaluate_rule(definition, {"hole_number": 4}) is False

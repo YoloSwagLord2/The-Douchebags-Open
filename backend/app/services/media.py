@@ -202,7 +202,7 @@ async def store_gallery_photo(media_id, upload: UploadFile) -> StoredGalleryMedi
     _content_length(contents, PHOTO_MAX_BYTES, "Photo")
 
     try:
-        image = Image.open(BytesIO(contents)).convert("RGBA")
+        image = ImageOps.exif_transpose(Image.open(BytesIO(contents))).convert("RGBA")
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Could not process photo") from exc
 

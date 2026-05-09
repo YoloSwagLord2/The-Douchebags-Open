@@ -56,6 +56,12 @@ export function AdminNotificationsPage() {
     await load();
   };
 
+  const deleteMessage = async (id: string) => {
+    if (!token) return;
+    await api.deleteAdminNotification(id, token);
+    setItems((current) => current.filter((item) => item.id !== id));
+  };
+
   return (
     <div className="admin-grid">
       <section className="detail-panel">
@@ -108,7 +114,12 @@ export function AdminNotificationsPage() {
         <div className="list-stack">
           {items.map((item) => (
             <article className="detail-panel detail-panel--nested" key={item.id}>
-              <strong>{item.title}</strong>
+              <div className="detail-panel__row">
+                <strong>{item.title}</strong>
+                <button className="button-ghost button-danger" type="button" onClick={() => deleteMessage(item.id)}>
+                  {t('notifications.delete', 'Delete')}
+                </button>
+              </div>
               <p>{item.body}</p>
             </article>
           ))}

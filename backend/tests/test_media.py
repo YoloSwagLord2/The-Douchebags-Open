@@ -52,6 +52,29 @@ async def test_store_gallery_photo_creates_png_variants(monkeypatch, tmp_path) -
 
 
 @pytest.mark.anyio("asyncio")
+async def test_store_gallery_photo_applies_exif_orientation(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("MEDIA_ROOT", str(tmp_path))
+    get_settings.cache_clear()
+
+    source = Image.new("RGB", (80, 160), "purple")
+    exif = source.getexif()
+    exif[274] = 6
+    image_bytes = BytesIO()
+    source.save(image_bytes, format="JPEG", exif=exif)
+    image_bytes.seek(0)
+
+    stored = await store_gallery_photo(
+        uuid4(),
+        UploadFile(filename="portrait.jpg", file=image_bytes, headers=Headers({"content-type": "image/jpeg"})),
+    )
+
+    with Image.open(tmp_path / stored["display"]) as display:
+        assert display.width > display.height
+
+    get_settings.cache_clear()
+
+
+@pytest.mark.anyio("asyncio")
 async def test_store_gallery_video_transcodes_to_web_mp4_with_png_poster(monkeypatch, tmp_path) -> None:
     if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
         pytest.skip("ffmpeg is not installed")

@@ -301,6 +301,11 @@ button {
   color: var(--muted);
 }
 
+.button-danger {
+  border-color: rgba(255, 108, 95, 0.34);
+  color: var(--danger);
+}
+
 .icon-button {
   width: 3rem;
   min-width: 3rem;
@@ -1697,17 +1702,39 @@ button {
   display: grid;
   place-items: center;
   padding: 1rem;
-  z-index: 50;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 500;
 }
 
 .modal-card {
   width: min(100%, 32rem);
+  max-height: calc(100svh - 2rem - env(safe-area-inset-bottom, 0px));
   padding: 1.25rem;
   border-radius: 1.4rem;
   border: 1px solid var(--border);
   background: linear-gradient(180deg, var(--panel-bg-strong), var(--panel-bg));
   position: relative;
   box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.1rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+  flex: 0 0 auto;
 }
 
 .modal-card--celebration {

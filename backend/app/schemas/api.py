@@ -372,6 +372,9 @@ class BonusRuleCreate(BaseModel):
 
 class BonusRuleUpdate(BaseModel):
     name: str | None = None
+    scope_type: ScopeType | None = None
+    tournament_id: uuid.UUID | None = None
+    round_id: uuid.UUID | None = None
     points: int | None = Field(default=None, ge=1)
     winner_message: str | None = None
     definition: dict[str, Any] | None = None

@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 
@@ -70,5 +70,7 @@ def evaluate_rule(definition: Mapping[str, Any], context: Mapping[str, Any]) -> 
     if operator == "lte":
         return actual is not None and actual <= expected
     if operator == "in":
-        return actual in expected
+        if isinstance(expected, str) or not isinstance(expected, Iterable):
+            return actual == expected or str(actual) == str(expected)
+        return actual in expected or str(actual) in {str(item) for item in expected}
     return False

@@ -887,3 +887,13 @@ def create_admin_notification(
     )
     db.commit()
     return {"status": "ok", "notification_id": str(notification.id)}
+
+
+@router.delete("/notifications/{notification_id}")
+def delete_admin_notification(notification_id: uuid.UUID, _: User = Depends(require_admin), db: Session = Depends(get_db)):
+    notification = db.scalar(select(Notification).where(Notification.id == notification_id))
+    if not notification:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found")
+    db.delete(notification)
+    db.commit()
+    return {"status": "ok"}
