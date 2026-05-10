@@ -431,6 +431,33 @@ button {
   margin: 0;
 }
 
+.media-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.media-menu {
+  width: 100%;
+  max-width: 480px;
+  background: var(--panel-bg-strong);
+  border-radius: 1.2rem 1.2rem 0 0;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+.media-menu__option {
+  cursor: pointer;
+  text-align: center;
+}
+
 .round-locked-notice {
   margin: 0;
   padding: 0.45rem 0.75rem;

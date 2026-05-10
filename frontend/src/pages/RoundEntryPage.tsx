@@ -63,6 +63,8 @@ export function RoundEntryPage() {
   const [isHoleImageOpen, setIsHoleImageOpen] = useState(false);
   const [isGalleryUploadOpen, setIsGalleryUploadOpen] = useState(false);
   const [capturedMediaFile, setCapturedMediaFile] = useState<File | null>(null);
+  const [mediaMenuOpen, setMediaMenuOpen] = useState(false);
+  const isAndroid = /android/i.test(navigator.userAgent);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const scorecardScrollRef = useRef<HTMLDivElement>(null);
   const [gpsEnabled, setGpsEnabled] = useState(() => localStorage.getItem("gps_enabled") === "true");
@@ -154,7 +156,9 @@ export function RoundEntryPage() {
   const courseName = scorecard?.round.course_name;
 
   const openHoleCamera = () => {
-    if (cameraInputRef.current) {
+    if (isAndroid) {
+      setMediaMenuOpen(true);
+    } else if (cameraInputRef.current) {
       cameraInputRef.current.value = "";
       cameraInputRef.current.click();
     }
@@ -392,6 +396,62 @@ export function RoundEntryPage() {
           setIsGalleryUploadOpen(true);
         }}
       />
+      {mediaMenuOpen && (
+        <div className="media-menu-backdrop" onClick={() => setMediaMenuOpen(false)}>
+          <div className="media-menu" onClick={(e) => e.stopPropagation()}>
+            <label className="button-secondary media-menu__option">
+              📷 Photo
+              <input
+                className="visually-hidden"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(event) => {
+                  setMediaMenuOpen(false);
+                  const nextFile = event.target.files?.[0] ?? null;
+                  if (!nextFile) return;
+                  setCapturedMediaFile(nextFile);
+                  setIsGalleryUploadOpen(true);
+                }}
+              />
+            </label>
+            <label className="button-secondary media-menu__option">
+              🎥 Video
+              <input
+                className="visually-hidden"
+                type="file"
+                accept="video/*"
+                capture="environment"
+                onChange={(event) => {
+                  setMediaMenuOpen(false);
+                  const nextFile = event.target.files?.[0] ?? null;
+                  if (!nextFile) return;
+                  setCapturedMediaFile(nextFile);
+                  setIsGalleryUploadOpen(true);
+                }}
+              />
+            </label>
+            <label className="button-secondary media-menu__option">
+              🖼️ Gallery
+              <input
+                className="visually-hidden"
+                type="file"
+                accept="image/*,video/*"
+                onChange={(event) => {
+                  setMediaMenuOpen(false);
+                  const nextFile = event.target.files?.[0] ?? null;
+                  if (!nextFile) return;
+                  setCapturedMediaFile(nextFile);
+                  setIsGalleryUploadOpen(true);
+                }}
+              />
+            </label>
+            <button type="button" className="button-ghost" onClick={() => setMediaMenuOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {scorecard && roundId && token ? (
         <GalleryUploadModal
