@@ -10,6 +10,11 @@ import { t } from "../lib/i18n";
 
 const ROUND_TRACKER_REFRESH_MS = 25000;
 
+type RoundTrackerPlayer = {
+  entry: LeaderboardEntry;
+  holes: HoleScorecardResponse[];
+};
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -71,7 +76,7 @@ export function RoundEntryPage() {
   const [draftTouched, setDraftTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [roundTrackerEntries, setRoundTrackerEntries] = useState<LeaderboardEntry[]>([]);
+  const [roundTrackerPlayers, setRoundTrackerPlayers] = useState<RoundTrackerPlayer[]>([]);
   const [roundTrackerLoading, setRoundTrackerLoading] = useState(false);
   const [roundTrackerError, setRoundTrackerError] = useState(false);
   const [isHoleImageOpen, setIsHoleImageOpen] = useState(false);
@@ -127,14 +132,25 @@ export function RoundEntryPage() {
 
   const refreshRoundTracker = useCallback(async (showLoading = false) => {
     if (!token || !roundId) {
-      setRoundTrackerEntries([]);
+      setRoundTrackerPlayers([]);
       return;
     }
     if (showLoading) setRoundTrackerLoading(true);
     setRoundTrackerError(false);
     try {
       const response = await api.roundLeaderboard(roundId, token);
-      setRoundTrackerEntries(response.official_entries.filter((entry) => entry.player_id !== user?.id));
+      const entries = response.official_entries.filter((entry) => entry.player_id !== user?.id);
+      const players = await Promise.all(
+        entries.map(async (entry) => {
+          try {
+            const scorecardResponse = await api.playerRoundScorecard(roundId, entry.player_id, token);
+            return { entry, holes: scorecardResponse.holes };
+          } catch {
+            return { entry, holes: [] };
+          }
+        }),
+      );
+      setRoundTrackerPlayers(players);
     } catch {
       setRoundTrackerError(true);
     } finally {
@@ -144,10 +160,10 @@ export function RoundEntryPage() {
 
   useEffect(() => {
     if (!token || !roundId) {
-      setRoundTrackerEntries([]);
+      setRoundTrackerPlayers([]);
       return;
     }
-    setRoundTrackerEntries([]);
+    setRoundTrackerPlayers([]);
     void refreshRoundTracker(true);
     const intervalId = window.setInterval(() => {
       if (document.visibilityState === "visible") void refreshRoundTracker(false);
@@ -596,42 +612,41 @@ export function RoundEntryPage() {
                   : t('score.roundTrackerLive')}
             </span>
           </div>
-          {roundTrackerEntries.length > 0 ? (
+          {roundTrackerPlayers.length > 0 ? (
             <div className="round-tracker__list">
-              {roundTrackerEntries.map((entry) => (
-                <article className="round-tracker__row" key={entry.player_id}>
-                  <div className="round-tracker__position">#{entry.official_position}</div>
-                  <div className="round-tracker__avatar" aria-hidden="true">
-                    {entry.avatar_url ? (
-                      <img alt="" src={entry.avatar_url} />
-                    ) : (
-                      initials(entry.player_name)
-                    )}
-                  </div>
-                  <div className="round-tracker__player">
-                    <strong>{entry.player_name}</strong>
-                    <span>{entry.holes_played} {t('leaderboard.holesLogged')}</span>
-                  </div>
-                  <div className="round-tracker__stats" aria-label={`${entry.player_name} ${t('score.roundTrackerTitle')}`}>
-                    <div>
-                      <span>{t('leaderboard.gross')}</span>
-                      <strong>{entry.gross_strokes}</strong>
+              {roundTrackerPlayers.map(({ entry, holes }) => {
+                const trackedHole = holes.find((item) => item.hole_id === currentHole?.hole_id);
+                return (
+                  <article className="round-tracker__row" key={entry.player_id}>
+                    <div className="round-tracker__position">#{entry.official_position}</div>
+                    <div className="round-tracker__avatar" aria-hidden="true">
+                      {entry.avatar_url ? (
+                        <img alt="" src={entry.avatar_url} />
+                      ) : (
+                        initials(entry.player_name)
+                      )}
                     </div>
-                    <div>
-                      <span>{t('leaderboard.net')}</span>
-                      <strong>{entry.net_strokes}</strong>
+                    <div className="round-tracker__player">
+                      <strong>{entry.player_name}</strong>
+                      <span>{entry.holes_played} {t('leaderboard.holesLogged')}</span>
                     </div>
-                    <div className="round-tracker__stat--primary">
-                      <span>{t('score.stb')}</span>
-                      <strong>{entry.official_stableford}</strong>
+                    <div className="round-tracker__stats round-tracker__stats--hole" aria-label={`${entry.player_name} ${t('score.roundTrackerTitle')}`}>
+                      <div>
+                        <span>{t('score.hole')}</span>
+                        <strong>{currentHole?.hole_number ?? "—"}</strong>
+                      </div>
+                      <div className="round-tracker__stat--primary">
+                        <span>{t('score.scoreLabel')}</span>
+                        <strong>{trackedHole?.strokes ?? "—"}</strong>
+                      </div>
+                      <div>
+                        <span>{t('score.stb')}</span>
+                        <strong>{trackedHole?.stableford_points ?? "—"}</strong>
+                      </div>
                     </div>
-                    <div>
-                      <span>{t('leaderboard.bonus')}</span>
-                      <strong>{entry.bonus_points}</strong>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           ) : (
             <p className="round-tracker__empty">

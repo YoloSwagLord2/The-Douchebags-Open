@@ -1681,6 +1681,10 @@ button {
   gap: 0.35rem;
 }
 
+.round-tracker__stats--hole {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .round-tracker__stats > div {
   min-width: 0;
   display: grid;
