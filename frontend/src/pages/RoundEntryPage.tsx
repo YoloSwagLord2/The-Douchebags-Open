@@ -607,61 +607,66 @@ export function RoundEntryPage() {
             </span>
           </div>
           {roundTrackerPlayers.length > 0 ? (
-            <div className="scorecard-summary round-tracker__table">
-              <table className="scorecard-table">
-                <thead>
-                  <tr>
-                    <th className="scorecard-table__label"></th>
-                    {scorecard?.holes
-                      .slice()
-                      .sort((a, b) => a.hole_number - b.hole_number)
-                      .map((h, i) => (
-                        <th key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>
-                          {h.hole_number}
-                        </th>
-                      ))}
-                  </tr>
-                </thead>
-                {roundTrackerPlayers.map(({ entry, holes }) => {
-                  const holesById = new Map(holes.map((item) => [item.hole_id, item]));
-                  const sorted = scorecard?.holes.slice().sort((a, b) => a.hole_number - b.hole_number) ?? [];
-                  return (
-                    <tbody className="round-tracker__player-scorecard" key={entry.player_id}>
-                      <tr>
-                        <td className="scorecard-table__label round-tracker__player-label">
-                          <span className="round-tracker__player-name">{entry.player_name}</span>
-                          <span className="round-tracker__player-meta">{t('score.scoreLabel')} · #{entry.official_position}</span>
-                        </td>
-                        {sorted.map((h, i) => {
-                          const trackedHole = holesById.get(h.hole_id);
-                          const badge = scoreBadgeClass(trackedHole?.strokes, h.par);
-                          return (
-                            <td key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>
-                              {trackedHole?.strokes != null
-                                ? <span className={`score-badge${badge}`}>{trackedHole.strokes}</span>
-                                : "—"}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                      <tr>
-                        <td className="scorecard-table__label round-tracker__player-label">
-                          <span className="round-tracker__player-name">{entry.player_name}</span>
-                          <span className="round-tracker__player-meta">{t('score.stb')} · {entry.holes_played} {t('leaderboard.holesLogged')}</span>
-                        </td>
-                        {sorted.map((h, i) => {
-                          const trackedHole = holesById.get(h.hole_id);
-                          return (
-                            <td key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>
-                              {trackedHole?.stableford_points ?? "—"}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    </tbody>
-                  );
-                })}
-              </table>
+            <div className="round-tracker__scorecards">
+              {roundTrackerPlayers.map(({ entry, holes }) => {
+                const holesById = new Map(holes.map((item) => [item.hole_id, item]));
+                const sorted = scorecard?.holes.slice().sort((a, b) => a.hole_number - b.hole_number) ?? [];
+                return (
+                  <div className="round-tracker__player-scorecard" key={entry.player_id}>
+                    <div className="round-tracker__player-heading">
+                      <strong>{entry.player_name}</strong>
+                      <span>#{entry.official_position} · {entry.holes_played} {t('leaderboard.holesLogged')}</span>
+                    </div>
+                    <div className="scorecard-summary round-tracker__table">
+                      <table className="scorecard-table">
+                        <thead>
+                          <tr>
+                            <th className="scorecard-table__label"></th>
+                            {sorted.map((h, i) => (
+                              <th key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>
+                                {h.hole_number}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="scorecard-table__label">{t('score.par')}</td>
+                            {sorted.map((h, i) => (
+                              <td key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>{h.par}</td>
+                            ))}
+                          </tr>
+                          <tr>
+                            <td className="scorecard-table__label">{t('score.scoreLabel')}</td>
+                            {sorted.map((h, i) => {
+                              const trackedHole = holesById.get(h.hole_id);
+                              const badge = scoreBadgeClass(trackedHole?.strokes, h.par);
+                              return (
+                                <td key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>
+                                  {trackedHole?.strokes != null
+                                    ? <span className={`score-badge${badge}`}>{trackedHole.strokes}</span>
+                                    : "—"}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                          <tr>
+                            <td className="scorecard-table__label">{t('score.stb')}</td>
+                            {sorted.map((h, i) => {
+                              const trackedHole = holesById.get(h.hole_id);
+                              return (
+                                <td key={h.hole_id} className={i === currentIndex ? "scorecard-table__col--active" : ""}>
+                                  {trackedHole?.stableford_points ?? "—"}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <p className="round-tracker__empty">
