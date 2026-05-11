@@ -8,6 +8,10 @@ function displayRoundName(round: { round_number: number; name?: string | null })
   return round.name?.trim() || `Round ${round.round_number}`;
 }
 
+function toggleId(ids: string[], id: string) {
+  return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
+}
+
 export function AdminRoundsPage() {
   const { token } = useAuth();
   const [rounds, setRounds] = useState<RoundResponse[]>([]);
@@ -17,6 +21,11 @@ export function AdminRoundsPage() {
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
   const [selectedRoundId, setSelectedRoundId] = useState("");
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
+  const [rosterRoundId, setRosterRoundId] = useState("");
+  const [rosterPlayerIds, setRosterPlayerIds] = useState<string[]>([]);
+  const [rosterSaving, setRosterSaving] = useState(false);
+  const [rosterError, setRosterError] = useState<string | null>(null);
+  const [rosterSaved, setRosterSaved] = useState(false);
   const [scorecard, setScorecard] = useState<ScorecardResponse | null>(null);
   const [draftScores, setDraftScores] = useState<Record<string, string>>({});
   const [scoreError, setScoreError] = useState<string | null>(null);
@@ -52,6 +61,9 @@ export function AdminRoundsPage() {
   const selectedTournament = tournaments.find((item) => item.id === selectedRound?.tournament_id);
   const playerIds = selectedRound?.player_ids.length ? selectedRound.player_ids : selectedTournament?.player_ids ?? [];
   const availablePlayers = players.filter((player) => playerIds.includes(player.id));
+  const rosterRound = rounds.find((round) => round.id === rosterRoundId);
+  const rosterTournament = tournaments.find((item) => item.id === rosterRound?.tournament_id);
+  const rosterTournamentPlayers = players.filter((player) => rosterTournament?.player_ids.includes(player.id));
 
   const loadScorecard = async (roundId = selectedRoundId, playerId = selectedPlayerId) => {
     if (!token || !roundId || !playerId) {
@@ -77,6 +89,16 @@ export function AdminRoundsPage() {
   }, [availablePlayers, selectedPlayerId]);
 
   useEffect(() => {
+    if (!rosterRound) {
+      setRosterPlayerIds([]);
+      return;
+    }
+    setRosterPlayerIds(rosterRound.player_ids);
+    setRosterError(null);
+    setRosterSaved(false);
+  }, [rosterRound]);
+
+  useEffect(() => {
     loadScorecard().catch((err) => {
       setScorecard(null);
       setDraftScores({});
@@ -100,6 +122,22 @@ export function AdminRoundsPage() {
       setScoreError(err instanceof Error ? err.message : "Failed to save scorecard");
     } finally {
       setScoreSaving(false);
+    }
+  };
+
+  const saveRoundRoster = async () => {
+    if (!token || !rosterRound) return;
+    setRosterSaving(true);
+    setRosterError(null);
+    setRosterSaved(false);
+    try {
+      await api.updateRound(rosterRound.id, { player_ids: rosterPlayerIds }, token);
+      await load();
+      setRosterSaved(true);
+    } catch (err) {
+      setRosterError(err instanceof Error ? err.message : "Failed to save round roster");
+    } finally {
+      setRosterSaving(false);
     }
   };
 
@@ -159,6 +197,71 @@ export function AdminRoundsPage() {
               </div>
             </article>
           ))}
+        </div>
+      </section>
+      <section className="detail-panel admin-round-roster">
+        <p className="eyebrow">Round roster</p>
+        <h2>Add players to a round</h2>
+        <div className="stack-form">
+          <label className="field-label">
+            Round
+            <select value={rosterRoundId} onChange={(event) => setRosterRoundId(event.target.value)}>
+              <option value="">Select round</option>
+              {rounds.map((round) => (
+                <option key={round.id} value={round.id}>
+                  {displayRoundName(round)} - {round.date}
+                </option>
+              ))}
+            </select>
+          </label>
+          {rosterRound ? (
+            <>
+              <p className="muted-copy">
+                {rosterPlayerIds.length} of {rosterTournamentPlayers.length} tournament players assigned. Removing players with saved scores is blocked.
+              </p>
+              <div className="round-roster-list">
+                {rosterTournamentPlayers.length ? (
+                  rosterTournamentPlayers.map((player) => (
+                    <label className="selection-row player-selection-row" key={player.id}>
+                      <input
+                        checked={rosterPlayerIds.includes(player.id)}
+                        onChange={() => {
+                          setRosterPlayerIds((current) => toggleId(current, player.id));
+                          setRosterSaved(false);
+                        }}
+                        type="checkbox"
+                      />
+                      {player.photo_avatar_url ? (
+                        <img alt={player.name} className="player-selection-row__thumb" src={player.photo_avatar_url} />
+                      ) : (
+                        <div className="player-selection-row__thumb player-selection-row__thumb--fallback">
+                          {player.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <span className="player-selection-row__copy">
+                        <span>{player.name}</span>
+                        <small>hcp {player.hcp}</small>
+                      </span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="muted-copy">Add players to the tournament roster first.</p>
+                )}
+              </div>
+              {rosterError ? <p className="form-error">{rosterError}</p> : null}
+              {rosterSaved ? <p className="form-success">Round roster saved</p> : null}
+              <button
+                className="button-primary"
+                disabled={rosterSaving || rosterPlayerIds.length === 0 || rosterTournamentPlayers.length === 0}
+                onClick={saveRoundRoster}
+                type="button"
+              >
+                {rosterSaving ? "Saving..." : "Save round roster"}
+              </button>
+            </>
+          ) : (
+            <p className="muted-copy">Select a round to manage its player roster.</p>
+          )}
         </div>
       </section>
       <section className="detail-panel admin-score-editor">
