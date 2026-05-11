@@ -125,6 +125,12 @@ const translations = {
     'score.saveAndContinue': 'Save and continue',
     'score.loading': 'Loading hole data…',
     'score.roundLocked': 'Round locked',
+    'score.roundTracker': 'Round tracker',
+    'score.roundTrackerTitle': 'Players in your round',
+    'score.roundTrackerLive': 'Live',
+    'score.roundTrackerLoading': 'Updating…',
+    'score.roundTrackerOffline': 'Offline',
+    'score.roundTrackerEmpty': 'No other players in this round yet.',
 
     // Gallery
     'gallery.eyebrow': 'Event gallery',
@@ -367,6 +373,12 @@ const translations = {
     'score.saveAndContinue': 'Opslaan en doorgaan',
     'score.loading': 'Holegegevens laden…',
     'score.roundLocked': 'Ronde gesloten',
+    'score.roundTracker': 'Ronde tracker',
+    'score.roundTrackerTitle': 'Spelers in jouw ronde',
+    'score.roundTrackerLive': 'Live',
+    'score.roundTrackerLoading': 'Bijwerken…',
+    'score.roundTrackerOffline': 'Offline',
+    'score.roundTrackerEmpty': 'Nog geen andere spelers in deze ronde.',
 
     // Gallery
     'gallery.eyebrow': 'Event galerij',

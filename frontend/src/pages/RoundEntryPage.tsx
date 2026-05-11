@@ -1,12 +1,23 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { CameraIcon } from "../components/CameraIcon";
 import { GalleryUploadModal } from "../components/GalleryUploadModal";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { usePopups } from "../lib/popups";
-import type { HoleScorecardResponse, NavigationTournament, ScorecardResponse } from "../lib/types";
+import type { HoleScorecardResponse, LeaderboardEntry, NavigationTournament, ScorecardResponse } from "../lib/types";
 import { t } from "../lib/i18n";
+
+const ROUND_TRACKER_REFRESH_MS = 25000;
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
 
 // Vincenty inverse formula on WGS84 ellipsoid — accurate to ~0.5mm
 function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -60,6 +71,9 @@ export function RoundEntryPage() {
   const [draftTouched, setDraftTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [roundTrackerEntries, setRoundTrackerEntries] = useState<LeaderboardEntry[]>([]);
+  const [roundTrackerLoading, setRoundTrackerLoading] = useState(false);
+  const [roundTrackerError, setRoundTrackerError] = useState(false);
   const [isHoleImageOpen, setIsHoleImageOpen] = useState(false);
   const [isGalleryUploadOpen, setIsGalleryUploadOpen] = useState(false);
   const [capturedMediaFile, setCapturedMediaFile] = useState<File | null>(null);
@@ -111,6 +125,36 @@ export function RoundEntryPage() {
     });
   }, [roundId, token]);
 
+  const refreshRoundTracker = useCallback(async (showLoading = false) => {
+    if (!token || !roundId) {
+      setRoundTrackerEntries([]);
+      return;
+    }
+    if (showLoading) setRoundTrackerLoading(true);
+    setRoundTrackerError(false);
+    try {
+      const response = await api.roundLeaderboard(roundId, token);
+      setRoundTrackerEntries(response.official_entries.filter((entry) => entry.player_id !== user?.id));
+    } catch {
+      setRoundTrackerError(true);
+    } finally {
+      if (showLoading) setRoundTrackerLoading(false);
+    }
+  }, [roundId, token, user?.id]);
+
+  useEffect(() => {
+    if (!token || !roundId) {
+      setRoundTrackerEntries([]);
+      return;
+    }
+    setRoundTrackerEntries([]);
+    void refreshRoundTracker(true);
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refreshRoundTracker(false);
+    }, ROUND_TRACKER_REFRESH_MS);
+    return () => window.clearInterval(intervalId);
+  }, [refreshRoundTracker, roundId, token]);
+
   const hole = scorecard?.holes[currentIndex];
 
   useEffect(() => {
@@ -139,7 +183,7 @@ export function RoundEntryPage() {
       if (response.new_achievements.length) {
         pushAchievementPopups(response.new_achievements);
       }
-      await refreshNotifications();
+      await Promise.all([refreshNotifications(), refreshRoundTracker(false)]);
       setCurrentIndex((index) => Math.min(index + 1, response.holes.length - 1));
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Failed to save score");
@@ -538,6 +582,63 @@ export function RoundEntryPage() {
             </div>
           );
         })()}
+        <div className="round-tracker">
+          <div className="round-tracker__header">
+            <div>
+              <p className="round-tracker__eyebrow">{t('score.roundTracker')}</p>
+              <h3>{t('score.roundTrackerTitle')}</h3>
+            </div>
+            <span className={`round-tracker__status${roundTrackerError ? " round-tracker__status--error" : ""}`}>
+              {roundTrackerLoading
+                ? t('score.roundTrackerLoading')
+                : roundTrackerError
+                  ? t('score.roundTrackerOffline')
+                  : t('score.roundTrackerLive')}
+            </span>
+          </div>
+          {roundTrackerEntries.length > 0 ? (
+            <div className="round-tracker__list">
+              {roundTrackerEntries.map((entry) => (
+                <article className="round-tracker__row" key={entry.player_id}>
+                  <div className="round-tracker__position">#{entry.official_position}</div>
+                  <div className="round-tracker__avatar" aria-hidden="true">
+                    {entry.avatar_url ? (
+                      <img alt="" src={entry.avatar_url} />
+                    ) : (
+                      initials(entry.player_name)
+                    )}
+                  </div>
+                  <div className="round-tracker__player">
+                    <strong>{entry.player_name}</strong>
+                    <span>{entry.holes_played} {t('leaderboard.holesLogged')}</span>
+                  </div>
+                  <div className="round-tracker__stats" aria-label={`${entry.player_name} ${t('score.roundTrackerTitle')}`}>
+                    <div>
+                      <span>{t('leaderboard.gross')}</span>
+                      <strong>{entry.gross_strokes}</strong>
+                    </div>
+                    <div>
+                      <span>{t('leaderboard.net')}</span>
+                      <strong>{entry.net_strokes}</strong>
+                    </div>
+                    <div className="round-tracker__stat--primary">
+                      <span>{t('score.stb')}</span>
+                      <strong>{entry.official_stableford}</strong>
+                    </div>
+                    <div>
+                      <span>{t('leaderboard.bonus')}</span>
+                      <strong>{entry.bonus_points}</strong>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="round-tracker__empty">
+              {roundTrackerLoading ? t('score.roundTrackerLoading') : t('score.roundTrackerEmpty')}
+            </p>
+          )}
+        </div>
       </section>
     </div>
   );
