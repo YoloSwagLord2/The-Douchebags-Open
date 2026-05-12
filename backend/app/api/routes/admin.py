@@ -556,6 +556,18 @@ def lock_round(round_id: uuid.UUID, _: User = Depends(require_admin), db: Sessio
     return round_obj
 
 
+@router.post("/rounds/{round_id}/unlock", response_model=RoundResponse)
+def unlock_round(round_id: uuid.UUID, _: User = Depends(require_admin), db: Session = Depends(get_db)):
+    round_obj = db.scalar(select(Round).where(Round.id == round_id))
+    if not round_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Round not found")
+    round_obj.status = RoundStatus.OPEN
+    round_obj.locked_at = None
+    db.commit()
+    db.refresh(round_obj)
+    return round_obj
+
+
 @router.get("/rounds/{round_id}/players/{player_id}/scorecard", response_model=ScorecardResponse)
 def get_admin_player_scorecard(
     round_id: uuid.UUID,

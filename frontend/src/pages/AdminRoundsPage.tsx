@@ -188,8 +188,16 @@ export function AdminRoundsPage() {
               <strong>{displayRoundName(round)}</strong>
               <p>{round.date}</p>
               <div className="form-actions">
-                <button className="button-ghost" onClick={() => token && api.lockRound(round.id, token).then(load)} type="button">
-                  {round.status === "locked" ? t('rounds.locked') : t('rounds.lock')}
+                <button
+                  className="button-ghost"
+                  type="button"
+                  onClick={() => {
+                    if (!token) return;
+                    const action = round.status === "locked" ? api.unlockRound : api.lockRound;
+                    action(round.id, token).then(load);
+                  }}
+                >
+                  {round.status === "locked" ? t('rounds.unlock') : t('rounds.lock')}
                 </button>
                 <button className="button-ghost" onClick={() => deleteRound(round)} type="button">
                   Delete round

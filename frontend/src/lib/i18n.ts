@@ -104,6 +104,7 @@ const translations = {
     'rounds.round': 'Round',
     'rounds.lock': 'Lock round',
     'rounds.locked': 'Locked',
+    'rounds.unlock': 'Unlock round',
 
     // Score entry
     'score.eyebrow': 'Score entry',
@@ -357,6 +358,7 @@ const translations = {
     'rounds.round': 'Ronde',
     'rounds.lock': 'Ronde vergrendelen',
     'rounds.locked': 'Vergrendeld',
+    'rounds.unlock': 'Ronde ontgrendelen',
 
     // Score entry
     'score.eyebrow': 'Score invoer',

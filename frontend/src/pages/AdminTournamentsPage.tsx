@@ -205,6 +205,16 @@ export function AdminTournamentsPage() {
     }
   };
 
+  const unlockRound = async (roundId: string) => {
+    if (!token) return;
+    try {
+      await api.unlockRound(roundId, token);
+      await load();
+    } catch (err) {
+      setRoundError(err instanceof Error ? err.message : "Failed to unlock round");
+    }
+  };
+
   const deleteRound = async (round: RoundResponse) => {
     if (!token) return;
     const confirmed = window.confirm(`Delete "${roundLabel(round)}"? This cannot be undone.`);
@@ -404,7 +414,9 @@ export function AdminTournamentsPage() {
                         </div>
                         <div className="form-actions" style={{ justifyContent: "flex-end" }}>
                           {round.status === "locked" ? (
-                            <span className="button-ghost" style={{ cursor: "default", opacity: 0.5 }}>Locked</span>
+                            <button className="button-ghost" onClick={() => unlockRound(round.id)} type="button">
+                              Unlock round
+                            </button>
                           ) : (
                             <button className="button-ghost" onClick={() => lockRound(round.id)} type="button">
                               Lock round

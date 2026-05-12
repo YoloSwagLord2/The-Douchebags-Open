@@ -223,6 +223,8 @@ export const api = {
     request<{ status: string }>(`/admin/rounds/${id}`, { method: "DELETE" }, token),
   lockRound: (id: string, token: string) =>
     request<RoundResponse>(`/admin/rounds/${id}/lock`, { method: "POST" }, token),
+  unlockRound: (id: string, token: string) =>
+    request<RoundResponse>(`/admin/rounds/${id}/unlock`, { method: "POST" }, token),
   adminOverrideScorecard: (roundId: string, playerId: string, scores: Array<{ hole_id: string; strokes: number }>, token: string) =>
     request<{ status: string }>(
       `/admin/rounds/${roundId}/players/${playerId}/scorecard`,
