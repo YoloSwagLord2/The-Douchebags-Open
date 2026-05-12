@@ -7,9 +7,14 @@ export function ScorePage() {
 
   const today = new Date().toISOString().slice(0, 10);
   const allRounds = navigation.flatMap((tn) => tn.rounds.map((r) => ({ ...r, tournamentId: tn.id })));
-  const pastOrToday = allRounds.filter((r) => r.date <= today).sort((a, b) => b.date.localeCompare(a.date));
-  const future = allRounds.filter((r) => r.date > today).sort((a, b) => a.date.localeCompare(b.date));
-  const bestRound = pastOrToday[0] ?? future[0];
+  const lockedRank = (status: string) => (status === "locked" ? 1 : 0);
+  const todayOrFuture = allRounds
+    .filter((r) => r.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date) || lockedRank(a.status) - lockedRank(b.status));
+  const past = allRounds
+    .filter((r) => r.date < today)
+    .sort((a, b) => b.date.localeCompare(a.date) || lockedRank(a.status) - lockedRank(b.status));
+  const bestRound = todayOrFuture[0] ?? past[0];
 
   if (bestRound) {
     return <Navigate replace to={`/round/${bestRound.id}/entry`} />;
