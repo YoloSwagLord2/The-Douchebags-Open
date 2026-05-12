@@ -2483,8 +2483,8 @@ button {
 }
 
 .bonus-demo__trophy {
-  width: 9rem;
-  aspect-ratio: 1;
+  width: min(9rem, 30vw);
+  height: min(12.7rem, 42vw);
   display: grid;
   place-items: center;
   filter: drop-shadow(0 18px 22px rgba(75, 48, 10, 0.22));
@@ -2912,6 +2912,7 @@ button {
 
   .bonus-demo__trophy {
     width: 7.5rem;
+    height: 10.55rem;
   }
 }
 
