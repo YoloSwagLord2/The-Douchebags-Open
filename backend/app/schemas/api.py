@@ -397,6 +397,21 @@ class BonusRuleResponse(APIModel):
     enabled: bool
 
 
+class BonusRuleAwardSummary(APIModel):
+    id: uuid.UUID
+    player_id: uuid.UUID
+    player_name: str
+    points_snapshot: int
+    awarded_at: dt.datetime
+    message_snapshot: str
+
+
+class BonusRuleOverviewResponse(BonusRuleResponse):
+    active_awards_count: int
+    latest_awarded_at: dt.datetime | None
+    active_awards: list[BonusRuleAwardSummary]
+
+
 class AchievementRuleCreate(BaseModel):
     name: str
     scope_type: ScopeType

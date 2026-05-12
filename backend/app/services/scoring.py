@@ -254,7 +254,8 @@ def _build_context(
         for (round_id, player_id, hole_id), strokes in score_state.items()
         if round_id == revision.round_id and player_id == revision.player_id
     }
-    round_computed = compute_round_totals(round_obj.course, _locked_hcp(db, round_obj.tournament_id, player), player_round_scores)
+    locked_hcp = _locked_hcp(db, round_obj.tournament_id, player)
+    round_computed = compute_round_totals(round_obj.course, locked_hcp, player_round_scores)
 
     tournament_scores: dict[uuid.UUID, int] = {}
     for tournament_round in rounds_by_tournament[round_obj.tournament_id]:
@@ -273,22 +274,36 @@ def _build_context(
             for hole in tournament_round.course.holes
             if (tournament_round.id, revision.player_id, hole.id) in score_state
         }
-        computed = compute_round_totals(tournament_round.course, _locked_hcp(db, round_obj.tournament_id, player), hole_scores)
+        computed = compute_round_totals(tournament_round.course, locked_hcp, hole_scores)
         tournament_gross += computed.totals.gross_strokes
         tournament_net += computed.totals.net_strokes
         tournament_stableford += computed.totals.official_stableford
         tournament_holes_played += computed.totals.holes_played
 
-    handicap_map = handicap_strokes_by_hole(round_obj.course, _locked_hcp(db, round_obj.tournament_id, player))
+    handicap_map = handicap_strokes_by_hole(round_obj.course, locked_hcp)
     net_strokes = revision.new_strokes - handicap_map.get(revision.hole_id, 0)
     net_to_par = net_strokes - current_hole.par
     gross_to_par = revision.new_strokes - current_hole.par
+    current_stableford = stableford_points(net_to_par)
     round_net_par_streak = current_net_par_streak(
         round_obj.course,
         player_round_scores,
         handicap_map,
         ending_hole_id=revision.hole_id,
     )
+    round_metrics = score_metrics_for_course(round_obj.course, player_round_scores, handicap_map)
+    previous_hole_context = previous_hole_metrics(round_obj.course, player_round_scores, handicap_map, current_hole.hole_number)
+    previous_round_totals = previous_round_metrics(db, round_obj, revision.player_id, locked_hcp, score_state, rounds_by_tournament)
+    total_rounds = len(rounds_by_tournament[round_obj.tournament_id])
+    position_before_round = tournament_position_before_round(
+        db,
+        rounds_by_tournament[round_obj.tournament_id],
+        round_obj,
+        revision.player_id,
+        player_lookup,
+        score_state,
+    )
+    roster_size = tournament_roster_size(db, round_obj.tournament_id)
 
     return {
         "strokes": revision.new_strokes,
@@ -298,11 +313,39 @@ def _build_context(
         "distance": current_hole.distance,
         "gross_to_par": gross_to_par,
         "net_to_par": net_to_par,
+        "stableford_points": current_stableford,
+        "player_hcp": locked_hcp,
+        "previous_hole_strokes": previous_hole_context["strokes"],
+        "previous_hole_gross_to_par": previous_hole_context["gross_to_par"],
+        "previous_hole_net_to_par": previous_hole_context["net_to_par"],
+        "previous_hole_stableford": previous_hole_context["stableford_points"],
         "round_holes_played": round_computed.totals.holes_played,
         "round_total_strokes": round_computed.totals.gross_strokes,
         "round_net_strokes": round_computed.totals.net_strokes,
         "round_net_par_streak": round_net_par_streak,
         "round_stableford": round_computed.totals.official_stableford,
+        "round_stableford_delta_prev": (
+            round_computed.totals.official_stableford - previous_round_totals["stableford"]
+            if previous_round_totals["stableford"] is not None
+            else None
+        ),
+        "round_zero_stableford_holes": round_metrics["zero_stableford_holes"],
+        "round_one_stableford_holes": round_metrics["one_stableford_holes"],
+        "round_four_plus_stableford_holes": round_metrics["four_plus_stableford_holes"],
+        "round_bogey_holes": round_metrics["bogey_holes"],
+        "round_par3_stableford": round_metrics["par3_stableford"],
+        "round_long_hole_stableford": round_metrics["long_hole_stableford"],
+        "front_nine_stableford": round_metrics["front_nine_stableford"],
+        "back_nine_stableford": round_metrics["back_nine_stableford"],
+        "previous_round_stableford": previous_round_totals["stableford"],
+        "previous_round_total_strokes": previous_round_totals["total_strokes"],
+        "previous_round_net_strokes": previous_round_totals["net_strokes"],
+        "round_number": round_obj.round_number,
+        "total_rounds": total_rounds,
+        "is_final_round": round_obj.round_number == total_rounds,
+        "tournament_position_before_round": position_before_round,
+        "is_bottom_half_before_round": position_before_round is not None and position_before_round > (roster_size / 2),
+        "is_outside_top3_before_round": position_before_round is not None and position_before_round > 3,
         "tournament_holes_played": tournament_holes_played,
         "tournament_total_strokes": tournament_gross,
         "tournament_net_strokes": tournament_net,
@@ -311,6 +354,159 @@ def _build_context(
         "round_number": round_obj.round_number,
         "tournament_name": round_obj.tournament.name,
     }
+
+
+def score_metrics_for_course(
+    course: Course,
+    scores_by_hole: dict[uuid.UUID, int],
+    handicap_map: dict[uuid.UUID, int],
+) -> dict[str, int]:
+    metrics = {
+        "zero_stableford_holes": 0,
+        "one_stableford_holes": 0,
+        "four_plus_stableford_holes": 0,
+        "bogey_holes": 0,
+        "par3_stableford": 0,
+        "long_hole_stableford": 0,
+        "front_nine_stableford": 0,
+        "back_nine_stableford": 0,
+    }
+    for hole in course.holes:
+        strokes = scores_by_hole.get(hole.id)
+        if strokes is None:
+            continue
+        gross_to_par = strokes - hole.par
+        net_to_par = strokes - handicap_map.get(hole.id, 0) - hole.par
+        points = stableford_points(net_to_par)
+        if points == 0:
+            metrics["zero_stableford_holes"] += 1
+        if points == 1:
+            metrics["one_stableford_holes"] += 1
+        if points >= 4:
+            metrics["four_plus_stableford_holes"] += 1
+        if gross_to_par == 1:
+            metrics["bogey_holes"] += 1
+        if hole.par == 3:
+            metrics["par3_stableford"] += points
+        if hole.distance >= 350:
+            metrics["long_hole_stableford"] += points
+        if hole.hole_number <= 9:
+            metrics["front_nine_stableford"] += points
+        else:
+            metrics["back_nine_stableford"] += points
+    return metrics
+
+
+def previous_hole_metrics(
+    course: Course,
+    scores_by_hole: dict[uuid.UUID, int],
+    handicap_map: dict[uuid.UUID, int],
+    current_hole_number: int,
+) -> dict[str, int | None]:
+    previous_hole = next((hole for hole in course.holes if hole.hole_number == current_hole_number - 1), None)
+    if not previous_hole:
+        return {"strokes": None, "gross_to_par": None, "net_to_par": None, "stableford_points": None}
+    strokes = scores_by_hole.get(previous_hole.id)
+    if strokes is None:
+        return {"strokes": None, "gross_to_par": None, "net_to_par": None, "stableford_points": None}
+    net_to_par = strokes - handicap_map.get(previous_hole.id, 0) - previous_hole.par
+    return {
+        "strokes": strokes,
+        "gross_to_par": strokes - previous_hole.par,
+        "net_to_par": net_to_par,
+        "stableford_points": stableford_points(net_to_par),
+    }
+
+
+def previous_round_metrics(
+    db: Session,
+    round_obj: Round,
+    player_id: uuid.UUID,
+    player_hcp: float,
+    score_state: dict[tuple[uuid.UUID, uuid.UUID, uuid.UUID], int],
+    rounds_by_tournament: dict[uuid.UUID, list[Round]],
+) -> dict[str, int | None]:
+    previous_round = max(
+        (
+            item
+            for item in rounds_by_tournament[round_obj.tournament_id]
+            if item.round_number < round_obj.round_number
+        ),
+        key=lambda item: item.round_number,
+        default=None,
+    )
+    if not previous_round:
+        return {"stableford": None, "total_strokes": None, "net_strokes": None}
+    scores = {
+        hole.id: score_state[(previous_round.id, player_id, hole.id)]
+        for hole in previous_round.course.holes
+        if (previous_round.id, player_id, hole.id) in score_state
+    }
+    computed = compute_round_totals(previous_round.course, player_hcp, scores)
+    return {
+        "stableford": computed.totals.official_stableford,
+        "total_strokes": computed.totals.gross_strokes,
+        "net_strokes": computed.totals.net_strokes,
+    }
+
+
+def tournament_roster_size(db: Session, tournament_id: uuid.UUID) -> int:
+    if not hasattr(db, "scalars"):
+        return 1
+    count = len(db.scalars(select(TournamentPlayer.player_id).where(TournamentPlayer.tournament_id == tournament_id)).all())
+    return count or 1
+
+
+def tournament_position_before_round(
+    db: Session,
+    rounds: list[Round],
+    current_round: Round,
+    player_id: uuid.UUID,
+    player_lookup: dict[uuid.UUID, User],
+    score_state: dict[tuple[uuid.UUID, uuid.UUID, uuid.UUID], int],
+) -> int | None:
+    if not hasattr(db, "scalars"):
+        return None
+    prior_rounds = [item for item in rounds if item.round_number < current_round.round_number]
+    if not prior_rounds:
+        return None
+    tournament_player_ids = db.scalars(
+        select(TournamentPlayer.player_id).where(TournamentPlayer.tournament_id == current_round.tournament_id)
+    ).all()
+    entries: list[tuple[uuid.UUID, int, int, int, str]] = []
+    for roster_player_id in tournament_player_ids:
+        player = player_lookup.get(roster_player_id)
+        if not player:
+            continue
+        stableford_total = 0
+        net_total = 0
+        gross_total = 0
+        for prior_round in prior_rounds:
+            scores = {
+                hole.id: score_state[(prior_round.id, roster_player_id, hole.id)]
+                for hole in prior_round.course.holes
+                if (prior_round.id, roster_player_id, hole.id) in score_state
+            }
+            computed = compute_round_totals(
+                prior_round.course,
+                _locked_hcp(db, current_round.tournament_id, player),
+                scores,
+            )
+            stableford_total += computed.totals.official_stableford
+            net_total += computed.totals.net_strokes
+            gross_total += computed.totals.gross_strokes
+        entries.append((roster_player_id, stableford_total, net_total, gross_total, player.name.lower()))
+    entries.sort(key=lambda item: (-item[1], item[2], item[3], item[4]))
+    previous_key = None
+    position = 0
+    for index, (entry_player_id, stableford, net, gross, _) in enumerate(entries, start=1):
+        key = (stableford, net, gross)
+        if key != previous_key:
+            position = index
+            previous_key = key
+        if entry_player_id == player_id:
+            return position
+    return None
 
 
 def current_net_par_streak(
@@ -430,22 +626,21 @@ def recompute_bonus_rules(
     ).all()
 
     for rule in [*round_rules, *tournament_rules]:
-        existing_active = db.scalar(
+        existing_active = db.scalars(
             select(BonusAward)
             .options(joinedload(BonusAward.bonus_rule))
             .where(BonusAward.bonus_rule_id == rule.id, BonusAward.revoked_at.is_(None))
-        )
+        ).all()
+        existing_by_occurrence = {award.occurrence_key: award for award in existing_active}
 
         if not rule.enabled:
-            if existing_active:
-                existing_active.revoked_at = datetime.now(timezone.utc)
-                existing_active.revoked_reason = "Rule disabled"
+            for award in existing_active:
+                award.revoked_at = datetime.now(timezone.utc)
+                award.revoked_reason = "Rule disabled"
             continue
 
         state: dict[tuple[uuid.UUID, uuid.UUID, uuid.UUID], int] = {}
-        winner_revision: ScoreRevision | None = None
-        winner_round: Round | None = None
-        winner_player_id: uuid.UUID | None = None
+        desired_occurrences: set[str] = set()
         for revision in revisions:
             current_round = rounds_by_id[revision.round_id]
             if rule.scope_type == ScopeType.ROUND and current_round.id != rule.round_id:
@@ -457,38 +652,34 @@ def recompute_bonus_rules(
                 continue
             context = _build_context(db, current_round, revision, state, player_lookup, rounds_by_tournament)
             if evaluate_rule(rule.definition_jsonb, context):
-                winner_revision = revision
-                winner_round = current_round
-                winner_player_id = revision.player_id
-                break
-
-        if winner_revision and winner_round and winner_player_id:
-            if existing_active and existing_active.trigger_score_revision_id == winner_revision.id and existing_active.player_id == winner_player_id:
-                existing_active.points_snapshot = rule.points
-                existing_active.message_snapshot = rule.winner_message
-                existing_active.animation_preset_snapshot = rule.animation_preset
-                existing_active.animation_lottie_url_snapshot = rule.animation_lottie_url
-            else:
-                if existing_active:
-                    existing_active.revoked_at = datetime.now(timezone.utc)
-                    existing_active.revoked_reason = "Winner changed after recomputation"
+                occurrence_key = str(revision.id)
+                desired_occurrences.add(occurrence_key)
+                if occurrence_key in existing_by_occurrence:
+                    award = existing_by_occurrence[occurrence_key]
+                    award.points_snapshot = rule.points
+                    award.message_snapshot = rule.winner_message
+                    award.animation_preset_snapshot = rule.animation_preset
+                    award.animation_lottie_url_snapshot = rule.animation_lottie_url
+                    continue
                 award = BonusAward(
                     bonus_rule_id=rule.id,
-                    player_id=winner_player_id,
-                    trigger_score_revision_id=winner_revision.id,
+                    player_id=revision.player_id,
+                    trigger_score_revision_id=revision.id,
+                    occurrence_key=occurrence_key,
                     points_snapshot=rule.points,
                     message_snapshot=rule.winner_message,
                     animation_preset_snapshot=rule.animation_preset,
                     animation_lottie_url_snapshot=rule.animation_lottie_url,
-                    awarded_at=winner_revision.created_at,
+                    awarded_at=revision.created_at,
                 )
                 db.add(award)
                 db.flush()
                 award.bonus_rule = rule
                 _notification_for_bonus(db, award)
-        elif existing_active:
-            existing_active.revoked_at = datetime.now(timezone.utc)
-            existing_active.revoked_reason = "No longer qualified"
+        for occurrence_key, award in existing_by_occurrence.items():
+            if occurrence_key not in desired_occurrences:
+                award.revoked_at = datetime.now(timezone.utc)
+                award.revoked_reason = "No longer qualified"
 
 
 def recompute_achievement_rules(

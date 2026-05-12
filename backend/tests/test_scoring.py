@@ -276,6 +276,19 @@ def test_rule_context_uses_supplied_db_for_locked_handicap(monkeypatch) -> None:
     assert context["strokes"] == course.holes[0].par
     assert context["net_to_par"] == 0
     assert context["round_stableford"] == 2
+    assert context["stableford_points"] == 2
+    assert context["player_hcp"] == 0
+    assert context["round_zero_stableford_holes"] == 0
+    assert context["round_one_stableford_holes"] == 0
+    assert context["round_four_plus_stableford_holes"] == 0
+    assert context["round_par3_stableford"] == 2
+    assert context["front_nine_stableford"] == 2
+    assert context["back_nine_stableford"] == 0
+    assert context["previous_hole_strokes"] is None
+    assert context["previous_round_stableford"] is None
+    assert context["round_number"] == 1
+    assert context["total_rounds"] == 1
+    assert context["is_final_round"] is True
 
 
 def test_leaderboard_positions_handle_ties() -> None:

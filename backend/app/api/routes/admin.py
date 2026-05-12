@@ -34,6 +34,7 @@ from app.schemas.api import (
     AchievementRuleUpdate,
     AppearanceResponse,
     BonusRuleCreate,
+    BonusRuleOverviewResponse,
     BonusRuleResponse,
     BonusRuleUpdate,
     CourseCreate,
@@ -658,9 +659,60 @@ def admin_override_scorecard(
     return {"status": "ok", "revisions": [str(item) for item in revision_ids]}
 
 
-@router.get("/bonus-rules", response_model=list[BonusRuleResponse])
+@router.get("/bonus-rules", response_model=list[BonusRuleOverviewResponse])
 def list_bonus_rules(_: User = Depends(require_admin), db: Session = Depends(get_db)):
-    return db.scalars(select(BonusRule).order_by(BonusRule.created_at.desc())).all()
+    rules = db.scalars(select(BonusRule).order_by(BonusRule.created_at.desc())).all()
+    if not rules:
+        return []
+
+    rule_ids = [rule.id for rule in rules]
+    active_awards = db.scalars(
+        select(BonusAward)
+        .where(BonusAward.bonus_rule_id.in_(rule_ids), BonusAward.revoked_at.is_(None))
+        .order_by(BonusAward.awarded_at.desc())
+    ).all()
+    player_ids = {award.player_id for award in active_awards}
+    players_by_id = {
+        player.id: player
+        for player in db.scalars(select(User).where(User.id.in_(player_ids))).all()
+    } if player_ids else {}
+
+    awards_by_rule: dict[uuid.UUID, list[BonusAward]] = {rule.id: [] for rule in rules}
+    for award in active_awards:
+        awards_by_rule.setdefault(award.bonus_rule_id, []).append(award)
+
+    response = []
+    for rule in rules:
+        awards = awards_by_rule.get(rule.id, [])
+        response.append(
+            {
+                "id": rule.id,
+                "name": rule.name,
+                "scope_type": rule.scope_type,
+                "tournament_id": rule.tournament_id,
+                "round_id": rule.round_id,
+                "points": rule.points,
+                "winner_message": rule.winner_message,
+                "definition_jsonb": rule.definition_jsonb,
+                "animation_preset": rule.animation_preset,
+                "animation_lottie_url": rule.animation_lottie_url,
+                "enabled": rule.enabled,
+                "active_awards_count": len(awards),
+                "latest_awarded_at": awards[0].awarded_at if awards else None,
+                "active_awards": [
+                    {
+                        "id": award.id,
+                        "player_id": award.player_id,
+                        "player_name": players_by_id[award.player_id].name if award.player_id in players_by_id else "Unknown player",
+                        "points_snapshot": award.points_snapshot,
+                        "awarded_at": award.awarded_at,
+                        "message_snapshot": award.message_snapshot,
+                    }
+                    for award in awards[:5]
+                ],
+            }
+        )
+    return response
 
 
 @router.post("/bonus-rules", response_model=BonusRuleResponse)

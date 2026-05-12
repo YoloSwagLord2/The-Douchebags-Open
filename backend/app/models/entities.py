@@ -258,6 +258,7 @@ class BonusAward(UUIDPrimaryKeyMixin, Base):
     awarded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_reason: Mapped[str | None] = mapped_column(Text)
+    occurrence_key: Mapped[str] = mapped_column(String(160), nullable=False)
 
     bonus_rule: Mapped["BonusRule"] = relationship(back_populates="awards")
 

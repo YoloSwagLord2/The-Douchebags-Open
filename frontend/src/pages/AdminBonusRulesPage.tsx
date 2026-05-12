@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { RuleBuilder } from "../components/RuleBuilder";
-import type { BonusAnimationPreset, BonusRuleResponse, RoundResponse, RuleNode, TournamentResponse } from "../lib/types";
+import type { BonusAnimationPreset, BonusRuleOverviewResponse, BonusRuleResponse, RoundResponse, RuleNode, TournamentResponse } from "../lib/types";
 import { t } from "../lib/i18n";
 
 const initialRule: RuleNode = { op: "and", conditions: [{ field: "strokes", operator: "gte", value: 10 }] };
@@ -13,13 +13,23 @@ function displayRoundName(round: { round_number: number; name?: string | null })
   return round.name?.trim() || `Round ${round.round_number}`;
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) return "Not won yet";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 function cloneRule(node: RuleNode): RuleNode {
   return JSON.parse(JSON.stringify(node)) as RuleNode;
 }
 
 export function AdminBonusRulesPage() {
   const { token } = useAuth();
-  const [rules, setRules] = useState<BonusRuleResponse[]>([]);
+  const [rules, setRules] = useState<BonusRuleOverviewResponse[]>([]);
   const [tournaments, setTournaments] = useState<TournamentResponse[]>([]);
   const [rounds, setRounds] = useState<RoundResponse[]>([]);
   const [scopeType, setScopeType] = useState<"round" | "tournament">("round");
@@ -97,7 +107,7 @@ export function AdminBonusRulesPage() {
     await load();
   };
 
-  const resetAwards = async (rule: BonusRuleResponse) => {
+  const resetAwards = async (rule: BonusRuleOverviewResponse) => {
     if (!token) return;
     const confirmed = window.confirm(`Reset active awards for "${rule.name}"?`);
     if (!confirmed) return;
@@ -105,7 +115,19 @@ export function AdminBonusRulesPage() {
     await load();
   };
 
+  const toggleRule = async (rule: BonusRuleOverviewResponse) => {
+    if (!token) return;
+    await api.updateBonusRule(rule.id, { enabled: !rule.enabled }, token);
+    await load();
+  };
+
   const tournamentNameById = new Map(tournaments.map((item) => [item.id, item.name]));
+  const roundNameById = new Map(
+    rounds.map((round) => [
+      round.id,
+      `${tournamentNameById.get(round.tournament_id) ?? "Tournament"} • ${displayRoundName(round)}`,
+    ]),
+  );
   const scopeOptions =
     scopeType === "tournament"
       ? tournaments.map((item) => ({ id: item.id, label: item.name }))
@@ -113,6 +135,10 @@ export function AdminBonusRulesPage() {
           id: round.id,
           label: `${tournamentNameById.get(round.tournament_id) ?? "Tournament"} • ${displayRoundName(round)}`,
         }));
+  const scopeLabel = (rule: BonusRuleResponse) =>
+    rule.scope_type === "tournament"
+      ? tournamentNameById.get(rule.tournament_id ?? "") ?? "Tournament"
+      : roundNameById.get(rule.round_id ?? "") ?? "Round";
 
   return (
     <div className="admin-grid">
@@ -166,9 +192,50 @@ export function AdminBonusRulesPage() {
         <h2>Existing bonus rules</h2>
         <div className="list-stack">
           {rules.map((rule) => (
-            <article className="detail-panel detail-panel--nested" key={rule.id}>
-              <strong>{rule.name}</strong>
-              <p>+{rule.points} points · {rule.scope_type}</p>
+            <article className="detail-panel detail-panel--nested bonus-rule-card" key={rule.id}>
+              <div className="bonus-rule-card__header">
+                <div>
+                  <strong>{rule.name}</strong>
+                  <p className="muted-copy">
+                    +{rule.points} points · {rule.scope_type} · {scopeLabel(rule)}
+                  </p>
+                </div>
+                <label className="admin-toggle">
+                  <input checked={rule.enabled} onChange={() => toggleRule(rule)} type="checkbox" />
+                  <span>{rule.enabled ? "Active" : "Inactive"}</span>
+                </label>
+              </div>
+
+              <div className="bonus-rule-card__stats">
+                <span>
+                  <small>Won</small>
+                  <strong>{rule.active_awards_count ?? rule.active_awards?.length ?? 0}</strong>
+                </span>
+                <span>
+                  <small>Latest</small>
+                  <strong>{formatDateTime(rule.latest_awarded_at)}</strong>
+                </span>
+              </div>
+
+              {rule.active_awards?.length ? (
+                <div className="bonus-rule-card__awards">
+                  {rule.active_awards.map((award) => (
+                    <div className="bonus-rule-card__award" key={award.id}>
+                      <span>
+                        <strong>{award.player_name}</strong>
+                        <small>{formatDateTime(award.awarded_at)}</small>
+                      </span>
+                      <b>+{award.points_snapshot}</b>
+                    </div>
+                  ))}
+                  {(rule.active_awards_count ?? 0) > rule.active_awards.length ? (
+                    <p className="muted-copy">+{rule.active_awards_count - rule.active_awards.length} more active awards</p>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="muted-copy">No active winners yet.</p>
+              )}
+
               <div className="form-actions">
                 <button className="button-secondary" onClick={() => editRule(rule)} type="button">
                   Edit

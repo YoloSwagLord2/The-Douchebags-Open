@@ -4,6 +4,7 @@ import type {
   AppearanceResponse,
   AuthResponse,
   BonusAward,
+  BonusRuleOverviewResponse,
   BonusRuleResponse,
   CourseResponse,
   GalleryComment,
@@ -230,7 +231,7 @@ export const api = {
     ),
   adminPlayerScorecard: (roundId: string, playerId: string, token: string) =>
     request<ScorecardResponse>(`/admin/rounds/${roundId}/players/${playerId}/scorecard`, {}, token),
-  adminBonusRules: (token: string) => request<BonusRuleResponse[]>("/admin/bonus-rules", {}, token),
+  adminBonusRules: (token: string) => request<BonusRuleOverviewResponse[]>("/admin/bonus-rules", {}, token),
   createBonusRule: (payload: Record<string, unknown>, token: string) =>
     request<BonusRuleResponse>("/admin/bonus-rules", { method: "POST", body: JSON.stringify(payload) }, token),
   updateBonusRule: (id: string, payload: Record<string, unknown>, token: string) =>

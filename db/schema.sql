@@ -225,6 +225,7 @@ CREATE TABLE bonus_awards (
 	awarded_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	revoked_at TIMESTAMP WITH TIME ZONE, 
 	revoked_reason TEXT, 
+	occurrence_key VARCHAR(160) NOT NULL,
 	id UUID NOT NULL, 
 	CONSTRAINT pk_bonus_awards PRIMARY KEY (id), 
 	CONSTRAINT fk_bonus_awards_bonus_rule_id_bonus_rules FOREIGN KEY(bonus_rule_id) REFERENCES bonus_rules (id) ON DELETE CASCADE, 

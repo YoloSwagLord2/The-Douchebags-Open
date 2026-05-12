@@ -306,6 +306,100 @@ button {
   color: var(--danger);
 }
 
+.admin-toggle {
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.admin-toggle input {
+  width: 2.6rem;
+  height: 1.45rem;
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  position: relative;
+  cursor: pointer;
+}
+
+.admin-toggle input::after {
+  content: "";
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  top: 50%;
+  left: 0.18rem;
+  transform: translateY(-50%);
+  background: var(--muted);
+  transition: left 0.15s, background 0.15s;
+}
+
+.admin-toggle input:checked {
+  border-color: rgba(255, 107, 157, 0.48);
+  background: rgba(255, 107, 157, 0.22);
+}
+
+.admin-toggle input:checked::after {
+  left: 1.34rem;
+  background: var(--gold);
+}
+
+.bonus-rule-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.bonus-rule-card__header,
+.bonus-rule-card__award {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.bonus-rule-card__stats {
+  display: grid;
+  grid-template-columns: minmax(5rem, 0.45fr) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.bonus-rule-card__stats span,
+.bonus-rule-card__award {
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.75rem;
+}
+
+.bonus-rule-card__stats small,
+.bonus-rule-card__award small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.bonus-rule-card__stats strong {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 1rem;
+}
+
+.bonus-rule-card__awards {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.bonus-rule-card__award b {
+  color: var(--gold);
+  white-space: nowrap;
+}
+
 .icon-button {
   width: 3rem;
   min-width: 3rem;

@@ -293,6 +293,21 @@ export interface BonusRuleResponse {
   enabled: boolean;
 }
 
+export interface BonusRuleOverviewResponse extends BonusRuleResponse {
+  active_awards_count: number;
+  latest_awarded_at?: string | null;
+  active_awards: BonusRuleAwardSummary[];
+}
+
+export interface BonusRuleAwardSummary {
+  id: string;
+  player_id: string;
+  player_name: string;
+  points_snapshot: number;
+  awarded_at: string;
+  message_snapshot: string;
+}
+
 export interface AchievementRuleResponse {
   id: string;
   name: string;
@@ -345,11 +360,35 @@ export type RuleField =
   | "distance"
   | "gross_to_par"
   | "net_to_par"
+  | "stableford_points"
+  | "player_hcp"
+  | "previous_hole_strokes"
+  | "previous_hole_gross_to_par"
+  | "previous_hole_net_to_par"
+  | "previous_hole_stableford"
   | "round_holes_played"
   | "round_total_strokes"
   | "round_net_strokes"
   | "round_net_par_streak"
   | "round_stableford"
+  | "round_stableford_delta_prev"
+  | "round_zero_stableford_holes"
+  | "round_one_stableford_holes"
+  | "round_four_plus_stableford_holes"
+  | "round_bogey_holes"
+  | "round_par3_stableford"
+  | "round_long_hole_stableford"
+  | "front_nine_stableford"
+  | "back_nine_stableford"
+  | "previous_round_stableford"
+  | "previous_round_total_strokes"
+  | "previous_round_net_strokes"
+  | "round_number"
+  | "total_rounds"
+  | "is_final_round"
+  | "tournament_position_before_round"
+  | "is_bottom_half_before_round"
+  | "is_outside_top3_before_round"
   | "tournament_holes_played"
   | "tournament_total_strokes"
   | "tournament_net_strokes"
