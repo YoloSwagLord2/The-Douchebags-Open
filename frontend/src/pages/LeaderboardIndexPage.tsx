@@ -12,6 +12,7 @@ import type {
 import { LeaderboardTable } from "../components/LeaderboardTable";
 import { PlayerCardModal } from "../components/PlayerCardModal";
 import { ScorecardModal } from "../components/ScorecardModal";
+import { RoundProgressChart } from "../components/RoundProgressChart";
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0] ?? "").join("").slice(0, 2).toUpperCase();
@@ -142,6 +143,7 @@ export function LeaderboardIndexPage() {
   const [mode, setMode] = useState<"official" | "bonus">("official");
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
   const [scorecardTarget, setScorecardTarget] = useState<{ playerId: string; roundId: string } | null>(null);
+  const [chartOpen, setChartOpen] = useState(false);
 
   // Auto-select the first (latest) tournament once navigation loads
   useEffect(() => {
@@ -197,23 +199,50 @@ export function LeaderboardIndexPage() {
             </select>
           </div>
         </div>
-        <div className="segmented-control">
-          <button
-            className={mode === "official" ? "is-active" : ""}
-            onClick={() => setMode("official")}
-            type="button"
-          >
-            Stableford
-          </button>
-          <button
-            className={mode === "bonus" ? "is-active" : ""}
-            onClick={() => setMode("bonus")}
-            type="button"
-          >
-            Bonus
-          </button>
+        <div className="leaderboard-masthead-controls">
+          <div className="segmented-control">
+            <button
+              className={mode === "official" ? "is-active" : ""}
+              onClick={() => setMode("official")}
+              type="button"
+            >
+              Stableford
+            </button>
+            <button
+              className={mode === "bonus" ? "is-active" : ""}
+              onClick={() => setMode("bonus")}
+              type="button"
+            >
+              Bonus
+            </button>
+          </div>
+          {entries.length > 0 && overview && overview.rounds.length > 0 && (
+            <button
+              type="button"
+              className="button-secondary icon-button progress-chart-trigger"
+              aria-label="Show STB progression chart"
+              title="STB progression"
+              onClick={() => setChartOpen(true)}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 17 9 11 13 15 21 7" />
+                <polyline points="14 7 21 7 21 14" />
+              </svg>
+            </button>
+          )}
         </div>
       </section>
+      {chartOpen && token && overview && overview.rounds.length > 0 && (
+        <RoundProgressChart
+          rounds={overview.rounds.map((r) => ({
+            id: r.id,
+            label: (r.name?.trim() || `Round ${r.round_number}`) + ` · ${r.course_name}`,
+          }))}
+          token={token}
+          entries={entries}
+          onClose={() => setChartOpen(false)}
+        />
+      )}
 
       {!selectedId ? (
         <section className="detail-panel">

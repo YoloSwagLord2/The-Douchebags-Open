@@ -552,6 +552,105 @@ button {
   text-align: center;
 }
 
+.leaderboard-masthead-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.leaderboard-masthead-controls .segmented-control {
+  flex: 1;
+  width: auto;
+}
+
+.progress-chart-trigger {
+  flex: 0 0 auto;
+  width: 2.6rem;
+  min-width: 2.6rem;
+  min-height: 2.6rem;
+}
+
+.progress-chart-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.progress-chart {
+  width: 100%;
+  max-width: 460px;
+  background: var(--panel-bg-strong);
+  border-radius: 1.1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.progress-chart__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.progress-chart__head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.progress-chart__close {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.progress-chart__round-select {
+  width: 100%;
+  min-height: 36px;
+  border-radius: 0.6rem;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  padding: 0.35rem 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.progress-chart__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.progress-chart__loading {
+  margin: 1.5rem 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.progress-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.8rem;
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.progress-chart__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .round-locked-notice {
   margin: 0;
   padding: 0.45rem 0.75rem;
