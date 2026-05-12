@@ -7,7 +7,6 @@ import { t } from "../lib/i18n";
 
 const initialRule: RuleNode = { op: "and", conditions: [{ field: "strokes", operator: "gte", value: 10 }] };
 const bonusAnimationPreset: BonusAnimationPreset = "confetti";
-const zaadLottieUrl = "/lotties/zaad.json";
 
 function displayRoundName(round: { round_number: number; name?: string | null }) {
   return round.name?.trim() || `Round ${round.round_number}`;
@@ -37,7 +36,6 @@ export function AdminBonusRulesPage() {
   const [name, setName] = useState("");
   const [points, setPoints] = useState(1);
   const [message, setMessage] = useState("");
-  const [lottieUrl, setLottieUrl] = useState(zaadLottieUrl);
   const [definition, setDefinition] = useState<RuleNode>(() => cloneRule(initialRule));
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -68,7 +66,6 @@ export function AdminBonusRulesPage() {
     setName("");
     setPoints(1);
     setMessage("");
-    setLottieUrl(zaadLottieUrl);
     setDefinition(cloneRule(initialRule));
   };
 
@@ -79,7 +76,6 @@ export function AdminBonusRulesPage() {
     setName(rule.name);
     setPoints(rule.points);
     setMessage(rule.winner_message);
-    setLottieUrl(rule.animation_lottie_url ?? zaadLottieUrl);
     setDefinition(cloneRule(rule.definition_jsonb));
   };
 
@@ -95,7 +91,7 @@ export function AdminBonusRulesPage() {
       winner_message: message,
       definition,
       animation_preset: bonusAnimationPreset,
-      animation_lottie_url: lottieUrl,
+      animation_lottie_url: null,
       enabled: true,
     };
     if (editingRuleId) {
@@ -171,9 +167,6 @@ export function AdminBonusRulesPage() {
           ) : null}
           <input min={1} required type="number" value={points} onChange={(event) => setPoints(Number(event.target.value))} />
           <textarea required placeholder="Winner message" value={message} onChange={(event) => setMessage(event.target.value)} />
-          <select value={lottieUrl} onChange={(event) => setLottieUrl(event.target.value)}>
-            <option value={zaadLottieUrl}>{t('bonusRules.animZaad')}</option>
-          </select>
           <RuleBuilder value={definition} onChange={setDefinition} />
           <div className="form-actions">
             <button className="button-primary" type="submit">

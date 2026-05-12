@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import type { NavigationTournament } from "../lib/types";
 import { Modal } from "./Modal";
-import { LottieOrPreset } from "./LottieOrPreset";
+import { BonusCelebration } from "./BonusCelebration";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { t } from "../lib/i18n";
@@ -14,7 +14,6 @@ export function AppShell() {
   const { user, token, logout } = useAuth();
   const { queue, dismiss, unreadCount } = usePopups();
   const [navigation, setNavigation] = useState<NavigationTournament[]>([]);
-  const [bonusAnimationComplete, setBonusAnimationComplete] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -22,13 +21,8 @@ export function AppShell() {
   }, [token]);
 
   const currentPopup = queue[0];
-  const currentBonusKey = currentPopup?.kind === "bonus" ? currentPopup.payload.bonus_rule_id : "";
   const latestTournament = navigation[0];
   const latestRound = latestTournament?.rounds[0];
-
-  useEffect(() => {
-    setBonusAnimationComplete(false);
-  }, [currentBonusKey]);
 
   return (
     <div className="app-shell">
@@ -120,23 +114,13 @@ export function AppShell() {
         }
       >
         {currentPopup?.kind === "bonus" ? (
-          <div className="celebration-stack">
-            <LottieOrPreset
-              preset={currentPopup.payload.animation_preset}
-              lottieUrl={currentPopup.payload.animation_lottie_url}
-              className="celebration-lottie"
-              onComplete={() => setBonusAnimationComplete(true)}
-            />
-            <div className={`celebration-overlay ${bonusAnimationComplete ? "is-visible" : ""}`}>
-              <p className="eyebrow">Bonus received</p>
-              <h2>{currentPopup.payload.rule_name}</h2>
-              <p className="celebration-points">+{currentPopup.payload.points} bonus Stableford</p>
-              <p>{currentPopup.payload.message}</p>
-              <button className="button-primary" onClick={dismiss} type="button">
-                Keep going
-              </button>
-            </div>
-          </div>
+          <BonusCelebration
+            key={currentPopup.payload.bonus_rule_id}
+            ruleName={currentPopup.payload.rule_name}
+            points={currentPopup.payload.points}
+            message={currentPopup.payload.message}
+            onClose={dismiss}
+          />
         ) : currentPopup?.kind === "achievement" ? (
           <div className="achievement-popup">
             <div className={`achievement-icon achievement-icon--${currentPopup.payload.icon}`} />

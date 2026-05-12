@@ -208,7 +208,6 @@ const translations = {
     'bonusRules.scopeRound': 'Round scoped',
     'bonusRules.scopeTournament': 'Tournament scoped',
     'bonusRules.selectScope': 'Select scope',
-    'bonusRules.animZaad': 'Zaad',
 
     // Achievement rules
     'achievementRules.eyebrow': 'Exceptional events',
@@ -456,7 +455,6 @@ const translations = {
     'bonusRules.scopeRound': 'Ronde bereik',
     'bonusRules.scopeTournament': 'Toernooi bereik',
     'bonusRules.selectScope': 'Bereik selecteren',
-    'bonusRules.animZaad': 'Zaad',
 
     // Achievement rules
     'achievementRules.eyebrow': 'Uitzonderlijke events',

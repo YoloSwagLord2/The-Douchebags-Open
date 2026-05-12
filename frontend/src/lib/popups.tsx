@@ -67,9 +67,10 @@ export function PopupProvider({ children }: PropsWithChildren) {
     if (!token) return;
     const [count, notifications] = await Promise.all([api.unreadCount(token), api.notifications(token)]);
     setUnreadCount(count.unread_count);
-    const unseen = notifications.filter(
-      (item) => !item.recipient?.popup_seen_at && !seenIdsRef.current.has(item.id),
-    );
+    const unseen = notifications.filter((item) => {
+      if (item.recipient?.popup_seen_at || seenIdsRef.current.has(item.id)) return false;
+      return item.source_type !== "bonus_award" && item.source_type !== "achievement_event";
+    });
     unseen.forEach((item) => seenIdsRef.current.add(item.id));
     if (unseen.length) {
       pushNotificationPopups(unseen);
