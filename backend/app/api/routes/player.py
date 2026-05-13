@@ -45,7 +45,7 @@ def _load_active_bonus_awards_for_round(db: Session, player_id: uuid.UUID, round
     return db.scalars(
         select(BonusAward)
         .options(joinedload(BonusAward.bonus_rule))
-        .join(BonusRule, BonusRule.id == BonusAward.bonus_rule_id)
+        .outerjoin(BonusRule, BonusRule.id == BonusAward.bonus_rule_id)
         .where(
             BonusAward.player_id == player_id,
             BonusAward.revoked_at.is_(None),
@@ -56,6 +56,7 @@ def _load_active_bonus_awards_for_round(db: Session, player_id: uuid.UUID, round
             (
                 ((BonusRule.scope_type == ScopeType.ROUND) & (BonusRule.round_id == round_obj.id))
                 | ((BonusRule.scope_type == ScopeType.TOURNAMENT) & (BonusRule.tournament_id == round_obj.tournament_id))
+                | ((BonusAward.bonus_rule_id.is_(None)) & (BonusAward.round_id == round_obj.id))
             ),
         )
         .order_by(BonusAward.awarded_at.desc())

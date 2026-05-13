@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import type { PlayerResponse } from "../lib/types";
+import type { PlayerResponse, RoundResponse, TournamentResponse } from "../lib/types";
 import { t, parseErrorMessage } from "../lib/i18n";
 
 const initialForm = { name: "", username: "", email: "", password: "", hcp: 18, role: "player", may_edit_pins: false };
@@ -14,14 +14,28 @@ const playerInitials = (name: string) =>
     .map((part) => part[0]?.toUpperCase())
     .join("") || "?";
 
+function displayRoundName(round: { round_number: number; name?: string | null }) {
+  return round.name?.trim() || `Round ${round.round_number}`;
+}
+
 export function AdminPlayersPage() {
   const { token } = useAuth();
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
+  const [rounds, setRounds] = useState<RoundResponse[]>([]);
+  const [tournaments, setTournaments] = useState<TournamentResponse[]>([]);
   const [form, setForm] = useState(initialForm);
   const [createError, setCreateError] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
+  const [bonusError, setBonusError] = useState<string | null>(null);
+  const [bonusSaved, setBonusSaved] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId);
+  const [bonusForm, setBonusForm] = useState({
+    round_id: "",
+    points: 1,
+    title: "",
+    message: "",
+  });
   const [editForm, setEditForm] = useState({
     name: "",
     email: "",
@@ -37,7 +51,14 @@ export function AdminPlayersPage() {
 
   const load = async () => {
     if (!token) return;
-    setPlayers(await api.adminPlayers(token));
+    const [playerData, roundData, tournamentData] = await Promise.all([
+      api.adminPlayers(token),
+      api.adminRounds(token),
+      api.adminTournaments(token),
+    ]);
+    setPlayers(playerData);
+    setRounds(roundData);
+    setTournaments(tournamentData);
   };
 
   useEffect(() => {
@@ -96,6 +117,31 @@ export function AdminPlayersPage() {
       setEditError(parseErrorMessage(err));
     }
   };
+
+  const awardManualBonus = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!token || !selectedPlayerId) return;
+    setBonusError(null);
+    setBonusSaved(false);
+    try {
+      await api.createManualBonusAward(
+        {
+          player_id: selectedPlayerId,
+          round_id: bonusForm.round_id,
+          points: bonusForm.points,
+          title: bonusForm.title,
+          message: bonusForm.message,
+        },
+        token,
+      );
+      setBonusForm({ ...bonusForm, points: 1, title: "", message: "" });
+      setBonusSaved(true);
+    } catch (err) {
+      setBonusError(parseErrorMessage(err));
+    }
+  };
+
+  const tournamentNameById = new Map(tournaments.map((item) => [item.id, item.name]));
 
   return (
     <div className="admin-grid">
@@ -185,6 +231,45 @@ export function AdminPlayersPage() {
             </label>
             {editError && <p className="form-error">{editError}</p>}
             <button className="button-secondary" type="submit">{t('players.update')}</button>
+          </form>
+        ) : null}
+        {selectedPlayer ? (
+          <form className="stack-form" onSubmit={awardManualBonus}>
+            <p className="eyebrow">Manual adjustment</p>
+            <h3>Award or deduct points</h3>
+            <select
+              required
+              value={bonusForm.round_id}
+              onChange={(event) => setBonusForm({ ...bonusForm, round_id: event.target.value })}
+            >
+              <option value="">Select round</option>
+              {rounds.map((round) => (
+                <option key={round.id} value={round.id}>
+                  {tournamentNameById.get(round.tournament_id) ?? "Tournament"} • {displayRoundName(round)}
+                </option>
+              ))}
+            </select>
+            <input
+              required
+              type="number"
+              value={bonusForm.points}
+              onChange={(event) => setBonusForm({ ...bonusForm, points: Number(event.target.value) })}
+            />
+            <input
+              required
+              placeholder="Adjustment title"
+              value={bonusForm.title}
+              onChange={(event) => setBonusForm({ ...bonusForm, title: event.target.value })}
+            />
+            <textarea
+              required
+              placeholder="Why did this player receive or lose these points?"
+              value={bonusForm.message}
+              onChange={(event) => setBonusForm({ ...bonusForm, message: event.target.value })}
+            />
+            {bonusError && <p className="form-error">{bonusError}</p>}
+            {bonusSaved && <p className="muted-copy">Manual points saved.</p>}
+            <button className="button-secondary" type="submit">Save point adjustment</button>
           </form>
         ) : null}
       </section>

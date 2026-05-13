@@ -59,8 +59,9 @@ def player_response(user: User) -> PlayerResponse:
 
 def bonus_unlock_response(award: BonusAward) -> BonusUnlockResponse:
     return BonusUnlockResponse(
+        bonus_award_id=award.id,
         bonus_rule_id=award.bonus_rule_id,
-        rule_name=award.bonus_rule.name,
+        rule_name=award.bonus_rule.name if award.bonus_rule else award.manual_title or "Manual bonus",
         points=award.points_snapshot,
         message=award.message_snapshot,
         animation_preset=award.animation_preset_snapshot,
@@ -73,6 +74,8 @@ def bonus_award_response(award: BonusAward) -> BonusAwardResponse:
         id=award.id,
         bonus_rule_id=award.bonus_rule_id,
         player_id=award.player_id,
+        rule_name=award.bonus_rule.name if award.bonus_rule else award.manual_title or "Manual bonus",
+        manual_title=award.manual_title,
         points_snapshot=award.points_snapshot,
         message_snapshot=award.message_snapshot,
         animation_preset_snapshot=award.animation_preset_snapshot,

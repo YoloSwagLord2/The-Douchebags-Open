@@ -263,7 +263,9 @@ class BonusRule(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 class BonusAward(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "bonus_awards"
 
-    bonus_rule_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("bonus_rules.id", ondelete="CASCADE"))
+    bonus_rule_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("bonus_rules.id", ondelete="CASCADE")
+    )
     player_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     round_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("rounds.id", ondelete="CASCADE"))
     tournament_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -273,6 +275,7 @@ class BonusAward(UUIDPrimaryKeyMixin, Base):
         UUID(as_uuid=True), ForeignKey("score_revisions.id", ondelete="CASCADE")
     )
     points_snapshot: Mapped[int] = mapped_column(Integer, nullable=False)
+    manual_title: Mapped[str | None] = mapped_column(String(160))
     message_snapshot: Mapped[str] = mapped_column(Text, nullable=False)
     animation_preset_snapshot: Mapped[BonusAnimationPreset] = mapped_column(
         enum_column(BonusAnimationPreset, "bonus_animation_snapshot_preset"), nullable=False

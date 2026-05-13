@@ -29,6 +29,7 @@ from app.models.entities import (
 )
 from app.models.enums import (
     BonusAwardTiming,
+    BonusAnimationPreset,
     NotificationSourceType,
     NotificationType,
     RoundStatus,
@@ -41,6 +42,7 @@ from app.schemas.api import (
     AchievementRuleResponse,
     AchievementRuleUpdate,
     AppearanceResponse,
+    BonusAwardResponse,
     BonusRuleCreate,
     BonusRuleOverviewResponse,
     BonusRuleResponse,
@@ -49,6 +51,7 @@ from app.schemas.api import (
     CourseResponse,
     CourseUpdate,
     HoleInput,
+    ManualBonusAwardCreate,
     NotificationCreate,
     NotificationResponse,
     PlayerCreate,
@@ -82,7 +85,7 @@ from app.services.scoring import (
     recompute_bonus_rules,
     revoke_round_close_bonus_awards,
 )
-from app.utils.serializers import bonus_unlock_response, notification_response, player_response, user_summary
+from app.utils.serializers import bonus_award_response, bonus_unlock_response, notification_response, player_response, user_summary
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -606,7 +609,7 @@ def get_admin_player_scorecard(
     active_bonuses = db.scalars(
         select(BonusAward)
         .options(joinedload(BonusAward.bonus_rule))
-        .join(BonusRule, BonusRule.id == BonusAward.bonus_rule_id)
+        .outerjoin(BonusRule, BonusRule.id == BonusAward.bonus_rule_id)
         .where(
             BonusAward.player_id == player.id,
             BonusAward.revoked_at.is_(None),
@@ -617,6 +620,7 @@ def get_admin_player_scorecard(
             (
                 ((BonusRule.scope_type == ScopeType.ROUND) & (BonusRule.round_id == round_obj.id))
                 | ((BonusRule.scope_type == ScopeType.TOURNAMENT) & (BonusRule.tournament_id == round_obj.tournament_id))
+                | ((BonusAward.bonus_rule_id.is_(None)) & (BonusAward.round_id == round_obj.id))
             ),
         )
         .order_by(BonusAward.awarded_at.desc())
@@ -848,6 +852,54 @@ def reset_bonus_rule_awards(rule_id: uuid.UUID, _: User = Depends(require_admin)
     rule.reset_cycle = (rule.reset_cycle or 1) + 1
     db.commit()
     return {"status": "ok", "reset_awards": len(awards), "reset_cycle": rule.reset_cycle}
+
+
+@router.post("/bonus-awards/manual", response_model=BonusAwardResponse)
+def create_manual_bonus_award(
+    payload: ManualBonusAwardCreate,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    round_obj = get_round_or_404(db, payload.round_id)
+    player = db.get(User, payload.player_id)
+    if not player:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Player not found")
+    ensure_player_can_score(db, round_obj, player.id)
+    now = datetime.now(timezone.utc)
+    award_id = uuid.uuid4()
+    award = BonusAward(
+        id=award_id,
+        bonus_rule_id=None,
+        player_id=player.id,
+        round_id=round_obj.id,
+        tournament_id=round_obj.tournament_id,
+        trigger_score_revision_id=None,
+        occurrence_key=f"manual:{award_id}",
+        logical_key=f"manual:{award_id}",
+        reset_cycle=1,
+        award_timing_snapshot=BonusAwardTiming.LIVE,
+        points_snapshot=payload.points,
+        manual_title=payload.title,
+        message_snapshot=payload.message,
+        animation_preset_snapshot=BonusAnimationPreset.CONFETTI,
+        animation_lottie_url_snapshot=None,
+        awarded_at=now,
+    )
+    db.add(award)
+    db.flush()
+    create_notification(
+        db,
+        title=payload.title,
+        body=payload.message,
+        recipients=[player.id],
+        notification_type=NotificationType.BONUS,
+        source_type=NotificationSourceType.BONUS_AWARD,
+        source_id=award.id,
+        created_by_user_id=admin_user.id,
+    )
+    db.commit()
+    db.refresh(award)
+    return bonus_award_response(award)
 
 
 @router.get("/achievement-rules", response_model=list[AchievementRuleResponse])

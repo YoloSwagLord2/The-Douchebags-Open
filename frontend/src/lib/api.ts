@@ -238,12 +238,16 @@ export const api = {
     request<BonusRuleResponse>("/admin/bonus-rules", { method: "POST", body: JSON.stringify(payload) }, token),
   updateBonusRule: (id: string, payload: Record<string, unknown>, token: string) =>
     request<BonusRuleResponse>(`/admin/bonus-rules/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
+  deleteBonusRule: (id: string, token: string) =>
+    request<{ status: string }>(`/admin/bonus-rules/${id}`, { method: "DELETE" }, token),
   resetBonusRuleAwards: (id: string, token: string) =>
     request<{ status: string; reset_awards: number; reset_cycle: number }>(
       `/admin/bonus-rules/${id}/reset-awards`,
       { method: "POST" },
       token,
     ),
+  createManualBonusAward: (payload: Record<string, unknown>, token: string) =>
+    request<BonusAward>("/admin/bonus-awards/manual", { method: "POST", body: JSON.stringify(payload) }, token),
   adminAchievementRules: (token: string) => request<AchievementRuleResponse[]>("/admin/achievement-rules", {}, token),
   createAchievementRule: (payload: Record<string, unknown>, token: string) =>
     request<AchievementRuleResponse>("/admin/achievement-rules", { method: "POST", body: JSON.stringify(payload) }, token),

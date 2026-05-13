@@ -101,7 +101,8 @@ export interface HoleScorecardResponse {
 }
 
 export interface BonusUnlockResponse {
-  bonus_rule_id: string;
+  bonus_award_id: string;
+  bonus_rule_id?: string | null;
   rule_name: string;
   points: number;
   message: string;
@@ -155,8 +156,10 @@ export interface ScorecardResponse {
 
 export interface BonusAward {
   id: string;
-  bonus_rule_id: string;
+  bonus_rule_id?: string | null;
   player_id: string;
+  rule_name: string;
+  manual_title?: string | null;
   points_snapshot: number;
   message_snapshot: string;
   animation_preset_snapshot: BonusAnimationPreset;

@@ -537,11 +537,12 @@ def current_net_par_streak(
 
 
 def _notification_for_bonus(db: Session, award: BonusAward) -> None:
+    rule_name = award.bonus_rule.name if award.bonus_rule else award.manual_title or "Manual bonus"
     if _bonus_logical_key_has_history(db, award.bonus_rule_id, award.logical_key, exclude_award_id=award.id):
         return
     create_notification(
         db,
-        title=f"Bonus unlocked: {award.bonus_rule.name}",
+        title=f"Bonus unlocked: {rule_name}",
         body=award.message_snapshot,
         recipients=[award.player_id],
         notification_type=NotificationType.BONUS,
@@ -640,15 +641,13 @@ def _bonus_logical_key_for_round_close(rule: BonusRule, round_id: uuid.UUID, pla
 
 def _bonus_logical_key_has_history(
     db: Session,
-    rule_id: uuid.UUID,
+    rule_id: uuid.UUID | None,
     logical_key: str,
     *,
     exclude_award_id: uuid.UUID | None = None,
 ) -> bool:
-    statement = select(BonusAward.id).where(
-        BonusAward.bonus_rule_id == rule_id,
-        BonusAward.logical_key == logical_key,
-    )
+    statement = select(BonusAward.id).where(BonusAward.logical_key == logical_key)
+    statement = statement.where(BonusAward.bonus_rule_id.is_(None) if rule_id is None else BonusAward.bonus_rule_id == rule_id)
     if exclude_award_id is not None:
         statement = statement.where(BonusAward.id != exclude_award_id)
     return db.scalar(statement.limit(1)) is not None
@@ -1073,7 +1072,7 @@ def get_active_bonus_points_for_round(
         timing_values.append(BonusAwardTiming.ROUND_CLOSE)
     awards = db.scalars(
         select(BonusAward)
-        .join(BonusRule, BonusRule.id == BonusAward.bonus_rule_id)
+        .outerjoin(BonusRule, BonusRule.id == BonusAward.bonus_rule_id)
         .where(
             BonusAward.player_id == player_id,
             BonusAward.revoked_at.is_(None),
@@ -1085,6 +1084,7 @@ def get_active_bonus_points_for_round(
             (
                 ((BonusRule.scope_type == ScopeType.ROUND) & (BonusRule.round_id == round_id))
                 | ((BonusRule.scope_type == ScopeType.TOURNAMENT) & (BonusRule.tournament_id == tournament_id))
+                | ((BonusAward.bonus_rule_id.is_(None)) & (BonusAward.round_id == round_id))
             ),
         )
     ).all()
@@ -1095,13 +1095,14 @@ def get_active_bonus_points_for_tournament(db: Session, *, player_id: uuid.UUID,
     tournament_round_ids = db.scalars(select(Round.id).where(Round.tournament_id == tournament_id)).all()
     awards = db.scalars(
         select(BonusAward)
-        .join(BonusRule, BonusRule.id == BonusAward.bonus_rule_id)
+        .outerjoin(BonusRule, BonusRule.id == BonusAward.bonus_rule_id)
         .where(
             BonusAward.player_id == player_id,
             BonusAward.revoked_at.is_(None),
             (
                 ((BonusRule.scope_type == ScopeType.ROUND) & (BonusRule.round_id.in_(tournament_round_ids)))
                 | ((BonusRule.scope_type == ScopeType.TOURNAMENT) & (BonusRule.tournament_id == tournament_id))
+                | ((BonusAward.bonus_rule_id.is_(None)) & (BonusAward.tournament_id == tournament_id))
             ),
         )
     ).all()

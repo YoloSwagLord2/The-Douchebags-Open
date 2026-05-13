@@ -267,7 +267,8 @@ class HoleScorecardResponse(APIModel):
 
 
 class BonusUnlockResponse(APIModel):
-    bonus_rule_id: uuid.UUID
+    bonus_award_id: uuid.UUID
+    bonus_rule_id: uuid.UUID | None = None
     rule_name: str
     points: int
     message: str
@@ -509,14 +510,30 @@ class NotificationResponse(APIModel):
 
 class BonusAwardResponse(APIModel):
     id: uuid.UUID
-    bonus_rule_id: uuid.UUID
+    bonus_rule_id: uuid.UUID | None = None
     player_id: uuid.UUID
+    rule_name: str
+    manual_title: str | None = None
     points_snapshot: int
     message_snapshot: str
     animation_preset_snapshot: BonusAnimationPreset
     animation_lottie_url_snapshot: str | None
     awarded_at: dt.datetime
     revoked_at: dt.datetime | None
+
+
+class ManualBonusAwardCreate(BaseModel):
+    player_id: uuid.UUID
+    round_id: uuid.UUID
+    points: int
+    title: str = Field(min_length=1, max_length=160)
+    message: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_non_zero_points(self) -> "ManualBonusAwardCreate":
+        if self.points == 0:
+            raise ValueError("points must be positive or negative")
+        return self
 
 
 class AchievementEventResponse(APIModel):

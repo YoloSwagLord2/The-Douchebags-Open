@@ -228,12 +228,13 @@ CREATE TABLE score_revisions (
 );
 
 CREATE TABLE bonus_awards (
-	bonus_rule_id UUID NOT NULL, 
+	bonus_rule_id UUID,
 	player_id UUID NOT NULL, 
 	round_id UUID,
 	tournament_id UUID,
 	trigger_score_revision_id UUID,
 	points_snapshot INTEGER NOT NULL, 
+	manual_title VARCHAR(160),
 	message_snapshot TEXT NOT NULL, 
 	animation_preset_snapshot bonus_animation_snapshot_preset NOT NULL, 
 	animation_lottie_url_snapshot TEXT, 

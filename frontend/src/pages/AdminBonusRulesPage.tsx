@@ -153,6 +153,17 @@ export function AdminBonusRulesPage() {
     await load();
   };
 
+  const deleteRule = async (rule: BonusRuleOverviewResponse) => {
+    if (!token) return;
+    const confirmed = window.confirm(`Delete bonus rule "${rule.name}"? This also removes its award history.`);
+    if (!confirmed) return;
+    await api.deleteBonusRule(rule.id, token);
+    if (editingRuleId === rule.id) {
+      resetForm();
+    }
+    await load();
+  };
+
   const toggleRule = async (rule: BonusRuleOverviewResponse) => {
     if (!token) return;
     await api.updateBonusRule(rule.id, { enabled: !rule.enabled }, token);
@@ -317,6 +328,9 @@ export function AdminBonusRulesPage() {
                 </button>
                 <button className="button-ghost" onClick={() => resetAwards(rule)} type="button">
                   Reset awards
+                </button>
+                <button className="button-ghost" onClick={() => deleteRule(rule)} type="button">
+                  Delete
                 </button>
               </div>
             </article>

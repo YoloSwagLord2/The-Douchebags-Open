@@ -115,7 +115,7 @@ export function AppShell() {
       >
         {currentPopup?.kind === "bonus" ? (
           <BonusCelebration
-            key={currentPopup.payload.bonus_rule_id}
+            key={currentPopup.payload.bonus_award_id}
             ruleName={currentPopup.payload.rule_name}
             points={currentPopup.payload.points}
             message={currentPopup.payload.message}
