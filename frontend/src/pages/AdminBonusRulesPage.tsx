@@ -2,11 +2,34 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { RuleBuilder } from "../components/RuleBuilder";
-import type { BonusAnimationPreset, BonusRuleOverviewResponse, BonusRuleResponse, RoundResponse, RuleNode, TournamentResponse } from "../lib/types";
+import type {
+  BonusAnimationPreset,
+  BonusAwardTiming,
+  BonusRepeatLimit,
+  BonusRuleOverviewResponse,
+  BonusRuleResponse,
+  BonusWinnerSelection,
+  RoundResponse,
+  RuleNode,
+  TournamentResponse,
+} from "../lib/types";
 import { t } from "../lib/i18n";
 
 const initialRule: RuleNode = { op: "and", conditions: [{ field: "strokes", operator: "gte", value: 10 }] };
 const bonusAnimationPreset: BonusAnimationPreset = "confetti";
+const repeatLimitLabels: Record<BonusRepeatLimit, string> = {
+  every_qualifying_event: "Every time it qualifies",
+  one_batch_until_reset: "One winner batch until reset",
+  once_per_player_until_reset: "Once per player until reset",
+  once_per_player_per_round: "Once per player per round",
+};
+const winnerSelectionLabels: Record<BonusWinnerSelection, string> = {
+  all_matching: "All matching players",
+  top_x: "Top X",
+  bottom_x: "Bottom X",
+  top_half: "Top half",
+  bottom_half: "Bottom half",
+};
 
 function displayRoundName(round: { round_number: number; name?: string | null }) {
   return round.name?.trim() || `Round ${round.round_number}`;
@@ -37,6 +60,10 @@ export function AdminBonusRulesPage() {
   const [points, setPoints] = useState(1);
   const [message, setMessage] = useState("");
   const [definition, setDefinition] = useState<RuleNode>(() => cloneRule(initialRule));
+  const [awardTiming, setAwardTiming] = useState<BonusAwardTiming>("live");
+  const [repeatLimit, setRepeatLimit] = useState<BonusRepeatLimit>("every_qualifying_event");
+  const [winnerSelection, setWinnerSelection] = useState<BonusWinnerSelection>("all_matching");
+  const [winnerSelectionCount, setWinnerSelectionCount] = useState(1);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -67,6 +94,10 @@ export function AdminBonusRulesPage() {
     setPoints(1);
     setMessage("");
     setDefinition(cloneRule(initialRule));
+    setAwardTiming("live");
+    setRepeatLimit("every_qualifying_event");
+    setWinnerSelection("all_matching");
+    setWinnerSelectionCount(1);
   };
 
   const editRule = (rule: BonusRuleResponse) => {
@@ -77,6 +108,10 @@ export function AdminBonusRulesPage() {
     setPoints(rule.points);
     setMessage(rule.winner_message);
     setDefinition(cloneRule(rule.definition_jsonb));
+    setAwardTiming(rule.award_timing);
+    setRepeatLimit(rule.repeat_limit);
+    setWinnerSelection(rule.winner_selection);
+    setWinnerSelectionCount(rule.winner_selection_count ?? 1);
   };
 
   const submit = async (event: FormEvent) => {
@@ -92,6 +127,13 @@ export function AdminBonusRulesPage() {
       definition,
       animation_preset: bonusAnimationPreset,
       animation_lottie_url: null,
+      award_timing: awardTiming,
+      repeat_limit: repeatLimit,
+      winner_selection: awardTiming === "round_close" ? winnerSelection : "all_matching",
+      winner_selection_count:
+        awardTiming === "round_close" && (winnerSelection === "top_x" || winnerSelection === "bottom_x")
+          ? winnerSelectionCount
+          : null,
       enabled: true,
     };
     if (editingRuleId) {
@@ -135,6 +177,15 @@ export function AdminBonusRulesPage() {
     rule.scope_type === "tournament"
       ? tournamentNameById.get(rule.tournament_id ?? "") ?? "Tournament"
       : roundNameById.get(rule.round_id ?? "") ?? "Round";
+  const ruleModeLabel = (rule: BonusRuleResponse) => {
+    const timing = rule.award_timing === "round_close" ? "Round close" : "Live";
+    const repeat = repeatLimitLabels[rule.repeat_limit];
+    const selection =
+      rule.award_timing === "round_close"
+        ? ` · ${winnerSelectionLabels[rule.winner_selection]}${rule.winner_selection_count ? ` ${rule.winner_selection_count}` : ""}`
+        : "";
+    return `${timing} · ${repeat}${selection}`;
+  };
 
   return (
     <div className="admin-grid">
@@ -167,6 +218,36 @@ export function AdminBonusRulesPage() {
           ) : null}
           <input min={1} required type="number" value={points} onChange={(event) => setPoints(Number(event.target.value))} />
           <textarea required placeholder="Winner message" value={message} onChange={(event) => setMessage(event.target.value)} />
+          <select value={awardTiming} onChange={(event) => setAwardTiming(event.target.value as BonusAwardTiming)}>
+            <option value="live">Live while scoring</option>
+            <option value="round_close">When round closes</option>
+          </select>
+          <select value={repeatLimit} onChange={(event) => setRepeatLimit(event.target.value as BonusRepeatLimit)}>
+            {Object.entries(repeatLimitLabels).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+          {awardTiming === "round_close" ? (
+            <>
+              <select
+                value={winnerSelection}
+                onChange={(event) => setWinnerSelection(event.target.value as BonusWinnerSelection)}
+              >
+                {Object.entries(winnerSelectionLabels).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              {winnerSelection === "top_x" || winnerSelection === "bottom_x" ? (
+                <input
+                  min={1}
+                  required
+                  type="number"
+                  value={winnerSelectionCount}
+                  onChange={(event) => setWinnerSelectionCount(Number(event.target.value))}
+                />
+              ) : null}
+            </>
+          ) : null}
           <RuleBuilder value={definition} onChange={setDefinition} />
           <div className="form-actions">
             <button className="button-primary" type="submit">
@@ -192,6 +273,7 @@ export function AdminBonusRulesPage() {
                   <p className="muted-copy">
                     +{rule.points} points · {rule.scope_type} · {scopeLabel(rule)}
                   </p>
+                  <p className="muted-copy">{ruleModeLabel(rule)}</p>
                 </div>
                 <label className="admin-toggle">
                   <input checked={rule.enabled} onChange={() => toggleRule(rule)} type="checkbox" />

@@ -28,6 +28,9 @@ from app.models.entities import (
     User,
 )
 from app.models.enums import (
+    BonusAwardTiming,
+    BonusRepeatLimit,
+    BonusWinnerSelection,
     NotificationSourceType,
     NotificationType,
     ScopeType,
@@ -534,6 +537,8 @@ def current_net_par_streak(
 
 
 def _notification_for_bonus(db: Session, award: BonusAward) -> None:
+    if _bonus_logical_key_has_history(db, award.bonus_rule_id, award.logical_key, exclude_award_id=award.id):
+        return
     create_notification(
         db,
         title=f"Bonus unlocked: {award.bonus_rule.name}",
@@ -601,6 +606,175 @@ def _bonus_revision_can_trigger(rule: BonusRule, revision: ScoreRevision) -> boo
     return not rule_started_at or revision.created_at > rule_started_at
 
 
+def _rule_award_timing(rule: BonusRule) -> BonusAwardTiming:
+    return rule.award_timing or BonusAwardTiming.LIVE
+
+
+def _rule_repeat_limit(rule: BonusRule) -> BonusRepeatLimit:
+    return rule.repeat_limit or BonusRepeatLimit.EVERY_QUALIFYING_EVENT
+
+
+def _rule_winner_selection(rule: BonusRule) -> BonusWinnerSelection:
+    return rule.winner_selection or BonusWinnerSelection.ALL_MATCHING
+
+
+def _rule_reset_cycle(rule: BonusRule) -> int:
+    return rule.reset_cycle or 1
+
+
+def _bonus_logical_key_for_revision(rule: BonusRule, revision: ScoreRevision) -> str:
+    reset_cycle = _rule_reset_cycle(rule)
+    repeat_limit = _rule_repeat_limit(rule)
+    if repeat_limit == BonusRepeatLimit.ONE_BATCH_UNTIL_RESET:
+        return f"live:rule:{rule.id}:cycle:{reset_cycle}"
+    if repeat_limit == BonusRepeatLimit.ONCE_PER_PLAYER_UNTIL_RESET:
+        return f"live:rule:{rule.id}:player:{revision.player_id}:cycle:{reset_cycle}"
+    if repeat_limit == BonusRepeatLimit.ONCE_PER_PLAYER_PER_ROUND:
+        return f"live:rule:{rule.id}:round:{revision.round_id}:player:{revision.player_id}:cycle:{reset_cycle}"
+    return f"live:rule:{rule.id}:revision:{revision.id}:cycle:{reset_cycle}"
+
+
+def _bonus_logical_key_for_round_close(rule: BonusRule, round_id: uuid.UUID, player_id: uuid.UUID) -> str:
+    return f"close:rule:{rule.id}:round:{round_id}:player:{player_id}:cycle:{_rule_reset_cycle(rule)}"
+
+
+def _bonus_logical_key_has_history(
+    db: Session,
+    rule_id: uuid.UUID,
+    logical_key: str,
+    *,
+    exclude_award_id: uuid.UUID | None = None,
+) -> bool:
+    statement = select(BonusAward.id).where(
+        BonusAward.bonus_rule_id == rule_id,
+        BonusAward.logical_key == logical_key,
+    )
+    if exclude_award_id is not None:
+        statement = statement.where(BonusAward.id != exclude_award_id)
+    return db.scalar(statement.limit(1)) is not None
+
+
+def _round_close_award_allowed(
+    db: Session,
+    rule: BonusRule,
+    *,
+    round_id: uuid.UUID,
+    player_id: uuid.UUID,
+) -> bool:
+    reset_cycle = _rule_reset_cycle(rule)
+    repeat_limit = _rule_repeat_limit(rule)
+    if repeat_limit == BonusRepeatLimit.ONE_BATCH_UNTIL_RESET:
+        other_round_award = db.scalar(
+            select(BonusAward.id).where(
+                BonusAward.bonus_rule_id == rule.id,
+                BonusAward.reset_cycle == reset_cycle,
+                BonusAward.award_timing_snapshot == BonusAwardTiming.ROUND_CLOSE,
+                BonusAward.round_id != round_id,
+            ).limit(1)
+        )
+        return other_round_award is None
+    if repeat_limit == BonusRepeatLimit.ONCE_PER_PLAYER_UNTIL_RESET:
+        other_round_award = db.scalar(
+            select(BonusAward.id).where(
+                BonusAward.bonus_rule_id == rule.id,
+                BonusAward.player_id == player_id,
+                BonusAward.reset_cycle == reset_cycle,
+                BonusAward.award_timing_snapshot == BonusAwardTiming.ROUND_CLOSE,
+                BonusAward.round_id != round_id,
+            ).limit(1)
+        )
+        return other_round_award is None
+    return True
+
+
+def _update_bonus_award_snapshot(award: BonusAward, rule: BonusRule) -> None:
+    award.points_snapshot = rule.points
+    award.message_snapshot = rule.winner_message
+    award.animation_preset_snapshot = rule.animation_preset
+    award.animation_lottie_url_snapshot = rule.animation_lottie_url
+
+
+def _score_state_for_rounds(db: Session, round_ids: list[uuid.UUID]) -> dict[tuple[uuid.UUID, uuid.UUID, uuid.UUID], int]:
+    if not round_ids:
+        return {}
+    scores = db.scalars(select(Score).where(Score.round_id.in_(round_ids))).all()
+    return {(score.round_id, score.player_id, score.hole_id): score.strokes for score in scores}
+
+
+def _latest_revision_lookup(db: Session, round_ids: list[uuid.UUID]) -> dict[tuple[uuid.UUID, uuid.UUID], ScoreRevision]:
+    revisions = db.scalars(
+        select(ScoreRevision)
+        .where(ScoreRevision.round_id.in_(round_ids))
+        .order_by(ScoreRevision.created_at.asc(), ScoreRevision.id.asc())
+    ).all()
+    latest: dict[tuple[uuid.UUID, uuid.UUID], ScoreRevision] = {}
+    for revision in revisions:
+        latest[(revision.round_id, revision.player_id)] = revision
+    return latest
+
+
+def _round_snapshot_entries(db: Session, round_obj: Round) -> list[LeaderboardEntry]:
+    entries = build_round_leaderboard(db, round_obj, include_round_close_awards=False)
+    return apply_positions(entries, mode="bonus")
+
+
+def _select_ranked_round_close_winners(rule: BonusRule, entries: list[LeaderboardEntry]) -> set[uuid.UUID]:
+    if not entries:
+        return set()
+    selection = _rule_winner_selection(rule)
+    if selection == BonusWinnerSelection.TOP_X:
+        count = rule.winner_selection_count or 1
+        return {entry.player_id for entry in entries if entry.bonus_position <= count}
+    if selection == BonusWinnerSelection.BOTTOM_X:
+        count = rule.winner_selection_count or 1
+        selected_positions = set(sorted({entry.bonus_position for entry in entries}, reverse=True)[:count])
+        return {entry.player_id for entry in entries if entry.bonus_position in selected_positions}
+    if selection == BonusWinnerSelection.TOP_HALF:
+        target_count = (len(entries) + 1) // 2
+        boundary_position = entries[target_count - 1].bonus_position
+        return {entry.player_id for entry in entries if entry.bonus_position <= boundary_position}
+    if selection == BonusWinnerSelection.BOTTOM_HALF:
+        target_count = (len(entries) + 1) // 2
+        boundary_index = max(len(entries) - target_count, 0)
+        boundary_position = entries[boundary_index].bonus_position
+        return {entry.player_id for entry in entries if entry.bonus_position >= boundary_position}
+    return {entry.player_id for entry in entries}
+
+
+def _context_for_round_close_player(
+    db: Session,
+    round_obj: Round,
+    player: User,
+    score_state: dict[tuple[uuid.UUID, uuid.UUID, uuid.UUID], int],
+    player_lookup: dict[uuid.UUID, User],
+    rounds_by_tournament: dict[uuid.UUID, list[Round]],
+    latest_revisions: dict[tuple[uuid.UUID, uuid.UUID], ScoreRevision],
+) -> dict[str, Any] | None:
+    revision = latest_revisions.get((round_obj.id, player.id))
+    if revision is None:
+        scored_holes = [
+            hole
+            for hole in sorted(round_obj.course.holes, key=lambda item: item.hole_number)
+            if (round_obj.id, player.id, hole.id) in score_state
+        ]
+        if not scored_holes:
+            return None
+        hole = scored_holes[-1]
+        revision = ScoreRevision(
+            id=uuid.uuid4(),
+            score_id=uuid.uuid4(),
+            round_id=round_obj.id,
+            player_id=player.id,
+            hole_id=hole.id,
+            previous_strokes=None,
+            new_strokes=score_state[(round_obj.id, player.id, hole.id)],
+            change_source=ScoreChangeSource.SYSTEM_RECOMPUTE,
+            changed_by_user_id=player.id,
+            created_at=round_obj.locked_at or datetime.now(timezone.utc),
+        )
+    return _build_context(db, round_obj, revision, score_state, player_lookup, rounds_by_tournament)
+
+
 def recompute_bonus_rules(
     db: Session,
     *,
@@ -619,10 +793,18 @@ def recompute_bonus_rules(
 
     revisions = _replay_scope_revisions(db, rounds)
     round_rules = db.scalars(
-        select(BonusRule).where(BonusRule.scope_type == ScopeType.ROUND, BonusRule.round_id == round_id)
+        select(BonusRule).where(
+            BonusRule.scope_type == ScopeType.ROUND,
+            BonusRule.round_id == round_id,
+            BonusRule.award_timing == BonusAwardTiming.LIVE,
+        )
     ).all() if round_id else []
     tournament_rules = db.scalars(
-        select(BonusRule).where(BonusRule.scope_type == ScopeType.TOURNAMENT, BonusRule.tournament_id == tournament_id)
+        select(BonusRule).where(
+            BonusRule.scope_type == ScopeType.TOURNAMENT,
+            BonusRule.tournament_id == tournament_id,
+            BonusRule.award_timing == BonusAwardTiming.LIVE,
+        )
     ).all()
 
     for rule in [*round_rules, *tournament_rules]:
@@ -631,7 +813,7 @@ def recompute_bonus_rules(
             .options(joinedload(BonusAward.bonus_rule))
             .where(BonusAward.bonus_rule_id == rule.id, BonusAward.revoked_at.is_(None))
         ).all()
-        existing_by_occurrence = {award.occurrence_key: award for award in existing_active}
+        existing_by_logical = {award.logical_key: award for award in existing_active}
 
         if not rule.enabled:
             for award in existing_active:
@@ -640,7 +822,7 @@ def recompute_bonus_rules(
             continue
 
         state: dict[tuple[uuid.UUID, uuid.UUID, uuid.UUID], int] = {}
-        desired_occurrences: set[str] = set()
+        desired_logical_keys: set[str] = set()
         for revision in revisions:
             current_round = rounds_by_id[revision.round_id]
             if rule.scope_type == ScopeType.ROUND and current_round.id != rule.round_id:
@@ -653,19 +835,22 @@ def recompute_bonus_rules(
             context = _build_context(db, current_round, revision, state, player_lookup, rounds_by_tournament)
             if evaluate_rule(rule.definition_jsonb, context):
                 occurrence_key = str(revision.id)
-                desired_occurrences.add(occurrence_key)
-                if occurrence_key in existing_by_occurrence:
-                    award = existing_by_occurrence[occurrence_key]
-                    award.points_snapshot = rule.points
-                    award.message_snapshot = rule.winner_message
-                    award.animation_preset_snapshot = rule.animation_preset
-                    award.animation_lottie_url_snapshot = rule.animation_lottie_url
+                logical_key = _bonus_logical_key_for_revision(rule, revision)
+                desired_logical_keys.add(logical_key)
+                if logical_key in existing_by_logical:
+                    award = existing_by_logical[logical_key]
+                    _update_bonus_award_snapshot(award, rule)
                     continue
                 award = BonusAward(
                     bonus_rule_id=rule.id,
                     player_id=revision.player_id,
+                    round_id=revision.round_id,
+                    tournament_id=current_round.tournament_id,
                     trigger_score_revision_id=revision.id,
                     occurrence_key=occurrence_key,
+                    logical_key=logical_key,
+                    reset_cycle=_rule_reset_cycle(rule),
+                    award_timing_snapshot=BonusAwardTiming.LIVE,
                     points_snapshot=rule.points,
                     message_snapshot=rule.winner_message,
                     animation_preset_snapshot=rule.animation_preset,
@@ -676,10 +861,123 @@ def recompute_bonus_rules(
                 db.flush()
                 award.bonus_rule = rule
                 _notification_for_bonus(db, award)
-        for occurrence_key, award in existing_by_occurrence.items():
-            if occurrence_key not in desired_occurrences:
+        for logical_key, award in existing_by_logical.items():
+            if logical_key not in desired_logical_keys:
                 award.revoked_at = datetime.now(timezone.utc)
                 award.revoked_reason = "No longer qualified"
+
+
+def revoke_round_close_bonus_awards(db: Session, round_obj: Round, *, reason: str = "Round unlocked") -> int:
+    now = datetime.now(timezone.utc)
+    awards = db.scalars(
+        select(BonusAward)
+        .join(BonusRule, BonusRule.id == BonusAward.bonus_rule_id)
+        .where(
+            BonusAward.round_id == round_obj.id,
+            BonusAward.revoked_at.is_(None),
+            BonusAward.award_timing_snapshot == BonusAwardTiming.ROUND_CLOSE,
+        )
+    ).all()
+    for award in awards:
+        award.revoked_at = now
+        award.revoked_reason = reason
+    return len(awards)
+
+
+def award_round_close_bonus_rules(db: Session, round_obj: Round) -> None:
+    revoke_round_close_bonus_awards(db, round_obj, reason="Round close recompute")
+    rounds = db.scalars(
+        select(Round)
+        .options(joinedload(Round.course).joinedload(Course.holes), joinedload(Round.tournament))
+        .where(Round.tournament_id == round_obj.tournament_id)
+        .order_by(Round.round_number.asc())
+    ).unique().all()
+    rounds_by_tournament = {round_obj.tournament_id: rounds}
+    round_ids = [item.id for item in rounds]
+    score_state = _score_state_for_rounds(db, round_ids)
+    latest_revisions = _latest_revision_lookup(db, round_ids)
+    player_lookup = {player.id: player for player in db.scalars(select(User)).all()}
+    roster_players = _players_for_round(db, round_obj)
+    roster_players_by_id = {player.id: player for player in roster_players}
+    snapshot_entries = _round_snapshot_entries(db, round_obj)
+    snapshot_entry_ids = {entry.player_id for entry in snapshot_entries}
+
+    round_rules = db.scalars(
+        select(BonusRule).where(
+            BonusRule.scope_type == ScopeType.ROUND,
+            BonusRule.round_id == round_obj.id,
+            BonusRule.award_timing == BonusAwardTiming.ROUND_CLOSE,
+        )
+    ).all()
+    tournament_rules = db.scalars(
+        select(BonusRule).where(
+            BonusRule.scope_type == ScopeType.TOURNAMENT,
+            BonusRule.tournament_id == round_obj.tournament_id,
+            BonusRule.award_timing == BonusAwardTiming.ROUND_CLOSE,
+        )
+    ).all()
+
+    for rule in [*round_rules, *tournament_rules]:
+        if not rule.enabled:
+            continue
+
+        matching_player_ids: set[uuid.UUID] = set()
+        for player in roster_players:
+            context = _context_for_round_close_player(
+                db,
+                round_obj,
+                player,
+                score_state,
+                player_lookup,
+                rounds_by_tournament,
+                latest_revisions,
+            )
+            if context is not None and evaluate_rule(rule.definition_jsonb, context):
+                matching_player_ids.add(player.id)
+
+        if _rule_winner_selection(rule) == BonusWinnerSelection.ALL_MATCHING:
+            winner_ids = matching_player_ids
+        else:
+            filtered_entries = [entry for entry in snapshot_entries if entry.player_id in matching_player_ids]
+            winner_ids = _select_ranked_round_close_winners(rule, filtered_entries)
+
+        for player_id in winner_ids & snapshot_entry_ids:
+            player = roster_players_by_id.get(player_id)
+            if player is None:
+                continue
+            if not _round_close_award_allowed(db, rule, round_id=round_obj.id, player_id=player_id):
+                continue
+            logical_key = _bonus_logical_key_for_round_close(rule, round_obj.id, player_id)
+            existing_active = db.scalar(
+                select(BonusAward).where(
+                    BonusAward.bonus_rule_id == rule.id,
+                    BonusAward.logical_key == logical_key,
+                    BonusAward.revoked_at.is_(None),
+                )
+            )
+            if existing_active:
+                _update_bonus_award_snapshot(existing_active, rule)
+                continue
+            award = BonusAward(
+                bonus_rule_id=rule.id,
+                player_id=player_id,
+                round_id=round_obj.id,
+                tournament_id=round_obj.tournament_id,
+                trigger_score_revision_id=None,
+                occurrence_key=f"close:{round_obj.id}:{player_id}:{_rule_reset_cycle(rule)}",
+                logical_key=logical_key,
+                reset_cycle=_rule_reset_cycle(rule),
+                award_timing_snapshot=BonusAwardTiming.ROUND_CLOSE,
+                points_snapshot=rule.points,
+                message_snapshot=rule.winner_message,
+                animation_preset_snapshot=rule.animation_preset,
+                animation_lottie_url_snapshot=rule.animation_lottie_url,
+                awarded_at=round_obj.locked_at or datetime.now(timezone.utc),
+            )
+            db.add(award)
+            db.flush()
+            award.bonus_rule = rule
+            _notification_for_bonus(db, award)
 
 
 def recompute_achievement_rules(
@@ -768,13 +1066,22 @@ def get_active_bonus_points_for_round(
     player_id: uuid.UUID,
     round_id: uuid.UUID,
     tournament_id: uuid.UUID,
+    include_round_close_awards: bool = True,
 ) -> int:
+    timing_values = [BonusAwardTiming.LIVE]
+    if include_round_close_awards:
+        timing_values.append(BonusAwardTiming.ROUND_CLOSE)
     awards = db.scalars(
         select(BonusAward)
         .join(BonusRule, BonusRule.id == BonusAward.bonus_rule_id)
         .where(
             BonusAward.player_id == player_id,
             BonusAward.revoked_at.is_(None),
+            BonusAward.award_timing_snapshot.in_(timing_values),
+            (
+                (BonusAward.award_timing_snapshot != BonusAwardTiming.ROUND_CLOSE)
+                | (BonusAward.round_id == round_id)
+            ),
             (
                 ((BonusRule.scope_type == ScopeType.ROUND) & (BonusRule.round_id == round_id))
                 | ((BonusRule.scope_type == ScopeType.TOURNAMENT) & (BonusRule.tournament_id == tournament_id))
@@ -801,7 +1108,12 @@ def get_active_bonus_points_for_tournament(db: Session, *, player_id: uuid.UUID,
     return sum(award.points_snapshot for award in awards)
 
 
-def build_round_leaderboard(db: Session, round_obj: Round) -> list[LeaderboardEntry]:
+def build_round_leaderboard(
+    db: Session,
+    round_obj: Round,
+    *,
+    include_round_close_awards: bool = True,
+) -> list[LeaderboardEntry]:
     roster_players = _players_for_round(db, round_obj)
 
     official_entries: list[LeaderboardEntry] = []
@@ -813,6 +1125,7 @@ def build_round_leaderboard(db: Session, round_obj: Round) -> list[LeaderboardEn
             player_id=player.id,
             round_id=round_obj.id,
             tournament_id=round_obj.tournament_id,
+            include_round_close_awards=include_round_close_awards,
         )
         official_entries.append(
             LeaderboardEntry(

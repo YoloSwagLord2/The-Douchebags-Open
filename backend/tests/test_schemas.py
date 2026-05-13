@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from app.models.enums import ScopeType
-from app.schemas.api import BonusRuleUpdate, HoleInput
+from app.models.enums import BonusAwardTiming, BonusWinnerSelection, ScopeType
+from app.schemas.api import BonusRuleCreate, BonusRuleUpdate, HoleInput
 
 
 def test_hole_input_allows_stroke_index_one_to_eighteen() -> None:
@@ -23,3 +23,34 @@ def test_bonus_rule_update_accepts_scope_changes() -> None:
 
     assert payload.scope_type == ScopeType.ROUND
     assert str(payload.round_id) == "00000000-0000-0000-0000-000000000001"
+
+
+def test_bonus_rule_create_requires_count_for_top_or_bottom_x() -> None:
+    with pytest.raises(ValidationError):
+        BonusRuleCreate(
+            name="Bottom few",
+            scope_type=ScopeType.ROUND,
+            round_id="00000000-0000-0000-0000-000000000001",
+            points=2,
+            winner_message="Bottom bonus",
+            definition={"field": "round_holes_played", "operator": "gte", "value": 1},
+            animation_preset="confetti",
+            award_timing=BonusAwardTiming.ROUND_CLOSE,
+            winner_selection=BonusWinnerSelection.BOTTOM_X,
+        )
+
+
+def test_bonus_rule_create_rejects_count_for_half_selection() -> None:
+    with pytest.raises(ValidationError):
+        BonusRuleCreate(
+            name="Bottom half",
+            scope_type=ScopeType.ROUND,
+            round_id="00000000-0000-0000-0000-000000000001",
+            points=2,
+            winner_message="Bottom bonus",
+            definition={"field": "round_holes_played", "operator": "gte", "value": 1},
+            animation_preset="confetti",
+            award_timing=BonusAwardTiming.ROUND_CLOSE,
+            winner_selection=BonusWinnerSelection.BOTTOM_HALF,
+            winner_selection_count=2,
+        )

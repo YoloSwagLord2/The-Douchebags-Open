@@ -27,7 +27,15 @@ from app.models.entities import (
     TournamentPlayer,
     User,
 )
-from app.models.enums import NotificationSourceType, NotificationType, RoundStatus, ScopeType, ScoreChangeSource, UserRole
+from app.models.enums import (
+    BonusAwardTiming,
+    NotificationSourceType,
+    NotificationType,
+    RoundStatus,
+    ScopeType,
+    ScoreChangeSource,
+    UserRole,
+)
 from app.schemas.api import (
     AchievementRuleCreate,
     AchievementRuleResponse,
@@ -63,6 +71,7 @@ from app.services.media import store_hole_image, store_player_photo, store_ui_ba
 from app.services.notifications import create_notification
 from app.services.rules import validate_rule_definition
 from app.services.scoring import (
+    award_round_close_bonus_rules,
     build_round_meta,
     compute_round_totals,
     ensure_player_can_score,
@@ -71,6 +80,7 @@ from app.services.scoring import (
     get_round_or_404,
     recompute_achievement_rules,
     recompute_bonus_rules,
+    revoke_round_close_bonus_awards,
 )
 from app.utils.serializers import bonus_unlock_response, notification_response, player_response, user_summary
 
@@ -551,6 +561,8 @@ def lock_round(round_id: uuid.UUID, _: User = Depends(require_admin), db: Sessio
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Round not found")
     round_obj.status = RoundStatus.LOCKED
     round_obj.locked_at = datetime.now(timezone.utc)
+    db.flush()
+    award_round_close_bonus_rules(db, round_obj)
     db.commit()
     db.refresh(round_obj)
     return round_obj
@@ -561,6 +573,7 @@ def unlock_round(round_id: uuid.UUID, _: User = Depends(require_admin), db: Sess
     round_obj = db.scalar(select(Round).where(Round.id == round_id))
     if not round_obj:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Round not found")
+    revoke_round_close_bonus_awards(db, round_obj)
     round_obj.status = RoundStatus.OPEN
     round_obj.locked_at = None
     db.commit()
@@ -597,6 +610,10 @@ def get_admin_player_scorecard(
         .where(
             BonusAward.player_id == player.id,
             BonusAward.revoked_at.is_(None),
+            (
+                (BonusAward.award_timing_snapshot != BonusAwardTiming.ROUND_CLOSE)
+                | (BonusAward.round_id == round_obj.id)
+            ),
             (
                 ((BonusRule.scope_type == ScopeType.ROUND) & (BonusRule.round_id == round_obj.id))
                 | ((BonusRule.scope_type == ScopeType.TOURNAMENT) & (BonusRule.tournament_id == round_obj.tournament_id))
@@ -708,6 +725,10 @@ def list_bonus_rules(_: User = Depends(require_admin), db: Session = Depends(get
                 "definition_jsonb": rule.definition_jsonb,
                 "animation_preset": rule.animation_preset,
                 "animation_lottie_url": rule.animation_lottie_url,
+                "award_timing": rule.award_timing,
+                "repeat_limit": rule.repeat_limit,
+                "winner_selection": rule.winner_selection,
+                "winner_selection_count": rule.winner_selection_count,
                 "enabled": rule.enabled,
                 "active_awards_count": len(awards),
                 "latest_awarded_at": awards[0].awarded_at if awards else None,
@@ -744,6 +765,10 @@ def create_bonus_rule(payload: BonusRuleCreate, admin_user: User = Depends(requi
         definition_jsonb=payload.definition,
         animation_preset=payload.animation_preset,
         animation_lottie_url=payload.animation_lottie_url,
+        award_timing=payload.award_timing,
+        repeat_limit=payload.repeat_limit,
+        winner_selection=payload.winner_selection,
+        winner_selection_count=payload.winner_selection_count,
         enabled=payload.enabled,
         created_by_user_id=admin_user.id,
         updated_by_user_id=admin_user.id,
@@ -820,8 +845,9 @@ def reset_bonus_rule_awards(rule_id: uuid.UUID, _: User = Depends(require_admin)
     for award in awards:
         award.revoked_at = now
         award.revoked_reason = "Admin reset"
+    rule.reset_cycle = (rule.reset_cycle or 1) + 1
     db.commit()
-    return {"status": "ok", "reset_awards": len(awards)}
+    return {"status": "ok", "reset_awards": len(awards), "reset_cycle": rule.reset_cycle}
 
 
 @router.get("/achievement-rules", response_model=list[AchievementRuleResponse])

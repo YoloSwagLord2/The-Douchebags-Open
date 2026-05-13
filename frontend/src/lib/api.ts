@@ -239,7 +239,11 @@ export const api = {
   updateBonusRule: (id: string, payload: Record<string, unknown>, token: string) =>
     request<BonusRuleResponse>(`/admin/bonus-rules/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
   resetBonusRuleAwards: (id: string, token: string) =>
-    request<{ status: string; reset_awards: number }>(`/admin/bonus-rules/${id}/reset-awards`, { method: "POST" }, token),
+    request<{ status: string; reset_awards: number; reset_cycle: number }>(
+      `/admin/bonus-rules/${id}/reset-awards`,
+      { method: "POST" },
+      token,
+    ),
   adminAchievementRules: (token: string) => request<AchievementRuleResponse[]>("/admin/achievement-rules", {}, token),
   createAchievementRule: (payload: Record<string, unknown>, token: string) =>
     request<AchievementRuleResponse>("/admin/achievement-rules", { method: "POST", body: JSON.stringify(payload) }, token),

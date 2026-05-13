@@ -14,6 +14,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    Index,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -21,7 +22,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.enums import (
     AchievementIconPreset,
+    BonusAwardTiming,
     BonusAnimationPreset,
+    BonusRepeatLimit,
+    BonusWinnerSelection,
     GalleryMediaType,
     NotificationPriority,
     NotificationSourceType,
@@ -225,6 +229,21 @@ class BonusRule(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         enum_column(BonusAnimationPreset, "bonus_animation_preset"), nullable=False
     )
     animation_lottie_url: Mapped[str | None] = mapped_column(Text)
+    award_timing: Mapped[BonusAwardTiming] = mapped_column(
+        enum_column(BonusAwardTiming, "bonus_award_timing"), nullable=False, default=BonusAwardTiming.LIVE
+    )
+    repeat_limit: Mapped[BonusRepeatLimit] = mapped_column(
+        enum_column(BonusRepeatLimit, "bonus_repeat_limit"),
+        nullable=False,
+        default=BonusRepeatLimit.EVERY_QUALIFYING_EVENT,
+    )
+    winner_selection: Mapped[BonusWinnerSelection] = mapped_column(
+        enum_column(BonusWinnerSelection, "bonus_winner_selection"),
+        nullable=False,
+        default=BonusWinnerSelection.ALL_MATCHING,
+    )
+    winner_selection_count: Mapped[int | None] = mapped_column(Integer)
+    reset_cycle: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     updated_by_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
@@ -246,7 +265,11 @@ class BonusAward(UUIDPrimaryKeyMixin, Base):
 
     bonus_rule_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("bonus_rules.id", ondelete="CASCADE"))
     player_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
-    trigger_score_revision_id: Mapped[uuid.UUID] = mapped_column(
+    round_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("rounds.id", ondelete="CASCADE"))
+    tournament_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tournaments.id", ondelete="CASCADE")
+    )
+    trigger_score_revision_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("score_revisions.id", ondelete="CASCADE")
     )
     points_snapshot: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -259,8 +282,20 @@ class BonusAward(UUIDPrimaryKeyMixin, Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_reason: Mapped[str | None] = mapped_column(Text)
     occurrence_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    logical_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    reset_cycle: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    award_timing_snapshot: Mapped[BonusAwardTiming] = mapped_column(
+        enum_column(BonusAwardTiming, "bonus_award_timing_snapshot"),
+        nullable=False,
+        default=BonusAwardTiming.LIVE,
+    )
 
     bonus_rule: Mapped["BonusRule"] = relationship(back_populates="awards")
+
+    __table_args__ = (
+        Index("ix_bonus_awards_rule_logical_cycle", "bonus_rule_id", "logical_key", "reset_cycle"),
+        Index("ix_bonus_awards_player_round", "player_id", "round_id"),
+    )
 
 
 class AchievementRule(UUIDPrimaryKeyMixin, TimestampMixin, Base):

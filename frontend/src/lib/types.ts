@@ -4,6 +4,13 @@ export type ScopeType = "round" | "tournament";
 export type NotificationType = "admin_message" | "achievement" | "bonus" | "system";
 export type NotificationPriority = "low" | "normal" | "high";
 export type BonusAnimationPreset = "confetti" | "fireworks" | "spotlight" | "chaos";
+export type BonusAwardTiming = "live" | "round_close";
+export type BonusRepeatLimit =
+  | "every_qualifying_event"
+  | "one_batch_until_reset"
+  | "once_per_player_until_reset"
+  | "once_per_player_per_round";
+export type BonusWinnerSelection = "all_matching" | "top_x" | "bottom_x" | "top_half" | "bottom_half";
 export type AchievementIconPreset = "star" | "ace" | "flame" | "trophy";
 export type GalleryMediaType = "photo" | "video";
 
@@ -290,6 +297,10 @@ export interface BonusRuleResponse {
   definition_jsonb: RuleNode;
   animation_preset: BonusAnimationPreset;
   animation_lottie_url?: string | null;
+  award_timing: BonusAwardTiming;
+  repeat_limit: BonusRepeatLimit;
+  winner_selection: BonusWinnerSelection;
+  winner_selection_count?: number | null;
   enabled: boolean;
 }
 

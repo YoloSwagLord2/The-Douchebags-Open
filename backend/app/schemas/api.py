@@ -4,11 +4,14 @@ import datetime as dt
 import uuid
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from app.models.enums import (
     AchievementIconPreset,
+    BonusAwardTiming,
     BonusAnimationPreset,
+    BonusRepeatLimit,
+    BonusWinnerSelection,
     GalleryMediaType,
     NotificationPriority,
     NotificationType,
@@ -367,7 +370,20 @@ class BonusRuleCreate(BaseModel):
     definition: dict[str, Any]
     animation_preset: BonusAnimationPreset
     animation_lottie_url: str | None = None
+    award_timing: BonusAwardTiming = BonusAwardTiming.LIVE
+    repeat_limit: BonusRepeatLimit = BonusRepeatLimit.EVERY_QUALIFYING_EVENT
+    winner_selection: BonusWinnerSelection = BonusWinnerSelection.ALL_MATCHING
+    winner_selection_count: int | None = Field(default=None, ge=1)
     enabled: bool = True
+
+    @model_validator(mode="after")
+    def validate_winner_selection(self) -> "BonusRuleCreate":
+        if self.winner_selection in {BonusWinnerSelection.TOP_X, BonusWinnerSelection.BOTTOM_X}:
+            if self.winner_selection_count is None:
+                raise ValueError("winner_selection_count is required for top/bottom X winner selection")
+        elif self.winner_selection_count is not None:
+            raise ValueError("winner_selection_count is only allowed for top/bottom X winner selection")
+        return self
 
 
 class BonusRuleUpdate(BaseModel):
@@ -380,7 +396,20 @@ class BonusRuleUpdate(BaseModel):
     definition: dict[str, Any] | None = None
     animation_preset: BonusAnimationPreset | None = None
     animation_lottie_url: str | None = None
+    award_timing: BonusAwardTiming | None = None
+    repeat_limit: BonusRepeatLimit | None = None
+    winner_selection: BonusWinnerSelection | None = None
+    winner_selection_count: int | None = Field(default=None, ge=1)
     enabled: bool | None = None
+
+    @model_validator(mode="after")
+    def validate_winner_selection(self) -> "BonusRuleUpdate":
+        if self.winner_selection in {BonusWinnerSelection.TOP_X, BonusWinnerSelection.BOTTOM_X}:
+            if self.winner_selection_count is None:
+                raise ValueError("winner_selection_count is required for top/bottom X winner selection")
+        elif self.winner_selection is not None and self.winner_selection_count is not None:
+            raise ValueError("winner_selection_count is only allowed for top/bottom X winner selection")
+        return self
 
 
 class BonusRuleResponse(APIModel):
@@ -394,6 +423,10 @@ class BonusRuleResponse(APIModel):
     definition_jsonb: dict[str, Any]
     animation_preset: BonusAnimationPreset
     animation_lottie_url: str | None
+    award_timing: BonusAwardTiming
+    repeat_limit: BonusRepeatLimit
+    winner_selection: BonusWinnerSelection
+    winner_selection_count: int | None
     enabled: bool
 
 

@@ -10,6 +10,14 @@ CREATE TYPE bonus_animation_preset AS ENUM ('confetti', 'fireworks', 'spotlight'
 
 CREATE TYPE bonus_animation_snapshot_preset AS ENUM ('confetti', 'fireworks', 'spotlight', 'chaos');
 
+CREATE TYPE bonus_award_timing AS ENUM ('live', 'round_close');
+
+CREATE TYPE bonus_repeat_limit AS ENUM ('every_qualifying_event', 'one_batch_until_reset', 'once_per_player_until_reset', 'once_per_player_per_round');
+
+CREATE TYPE bonus_winner_selection AS ENUM ('all_matching', 'top_x', 'bottom_x', 'top_half', 'bottom_half');
+
+CREATE TYPE bonus_award_timing_snapshot AS ENUM ('live', 'round_close');
+
 CREATE TYPE achievement_scope_type AS ENUM ('round', 'tournament');
 
 CREATE TYPE achievement_icon_preset AS ENUM ('star', 'ace', 'flame', 'trophy');
@@ -144,6 +152,11 @@ CREATE TABLE bonus_rules (
 	definition_jsonb JSONB NOT NULL, 
 	animation_preset bonus_animation_preset NOT NULL, 
 	animation_lottie_url TEXT, 
+	award_timing bonus_award_timing NOT NULL,
+	repeat_limit bonus_repeat_limit NOT NULL,
+	winner_selection bonus_winner_selection NOT NULL,
+	winner_selection_count INTEGER,
+	reset_cycle INTEGER NOT NULL,
 	enabled BOOLEAN NOT NULL, 
 	created_by_user_id UUID NOT NULL, 
 	updated_by_user_id UUID NOT NULL, 
@@ -217,7 +230,9 @@ CREATE TABLE score_revisions (
 CREATE TABLE bonus_awards (
 	bonus_rule_id UUID NOT NULL, 
 	player_id UUID NOT NULL, 
-	trigger_score_revision_id UUID NOT NULL, 
+	round_id UUID,
+	tournament_id UUID,
+	trigger_score_revision_id UUID,
 	points_snapshot INTEGER NOT NULL, 
 	message_snapshot TEXT NOT NULL, 
 	animation_preset_snapshot bonus_animation_snapshot_preset NOT NULL, 
@@ -226,10 +241,15 @@ CREATE TABLE bonus_awards (
 	revoked_at TIMESTAMP WITH TIME ZONE, 
 	revoked_reason TEXT, 
 	occurrence_key VARCHAR(160) NOT NULL,
+	logical_key VARCHAR(255) NOT NULL,
+	reset_cycle INTEGER NOT NULL,
+	award_timing_snapshot bonus_award_timing_snapshot NOT NULL,
 	id UUID NOT NULL, 
 	CONSTRAINT pk_bonus_awards PRIMARY KEY (id), 
 	CONSTRAINT fk_bonus_awards_bonus_rule_id_bonus_rules FOREIGN KEY(bonus_rule_id) REFERENCES bonus_rules (id) ON DELETE CASCADE, 
 	CONSTRAINT fk_bonus_awards_player_id_users FOREIGN KEY(player_id) REFERENCES users (id), 
+	CONSTRAINT fk_bonus_awards_round_id_rounds FOREIGN KEY(round_id) REFERENCES rounds (id) ON DELETE CASCADE,
+	CONSTRAINT fk_bonus_awards_tournament_id_tournaments FOREIGN KEY(tournament_id) REFERENCES tournaments (id) ON DELETE CASCADE,
 	CONSTRAINT fk_bonus_awards_trigger_score_revision_id_score_revisions FOREIGN KEY(trigger_score_revision_id) REFERENCES score_revisions (id) ON DELETE CASCADE
 );
 

@@ -2,12 +2,14 @@ import uuid
 from datetime import date, datetime, timezone
 
 from app.models.entities import BonusRule, Course, Hole, Round, Score, ScoreRevision, Tournament, User
-from app.models.enums import BonusAnimationPreset, ScopeType, ScoreChangeSource
+from app.models.enums import BonusAnimationPreset, BonusRepeatLimit, BonusWinnerSelection, ScopeType, ScoreChangeSource
 from app.schemas.api import LeaderboardEntry
 from app.services.scoring import (
     _backfill_missing_score_revisions,
+    _bonus_logical_key_for_revision,
     _bonus_revision_can_trigger,
     _build_context,
+    _select_ranked_round_close_winners,
     apply_positions,
     calculate_playing_handicap,
     compute_round_totals,
@@ -329,3 +331,119 @@ def test_leaderboard_positions_handle_ties() -> None:
     assert official[0].official_position == 1
     assert official[1].official_position == 1
     assert bonus[0].player_name == "Bravo"
+
+
+def test_bonus_logical_key_respects_once_per_player_per_round_limit() -> None:
+    rule = BonusRule(
+        id=uuid.uuid4(),
+        name="One per round",
+        scope_type=ScopeType.TOURNAMENT,
+        tournament_id=uuid.uuid4(),
+        points=1,
+        winner_message="Once",
+        definition_jsonb={"field": "strokes", "operator": "gte", "value": 10},
+        animation_preset=BonusAnimationPreset.CONFETTI,
+        repeat_limit=BonusRepeatLimit.ONCE_PER_PLAYER_PER_ROUND,
+        reset_cycle=3,
+        created_by_user_id=uuid.uuid4(),
+        updated_by_user_id=uuid.uuid4(),
+    )
+    revision = ScoreRevision(
+        id=uuid.uuid4(),
+        score_id=uuid.uuid4(),
+        round_id=uuid.uuid4(),
+        player_id=uuid.uuid4(),
+        hole_id=uuid.uuid4(),
+        previous_strokes=None,
+        new_strokes=10,
+        change_source=ScoreChangeSource.PLAYER_SAVE,
+        changed_by_user_id=uuid.uuid4(),
+        created_at=datetime(2026, 5, 10, 12, 1, tzinfo=timezone.utc),
+    )
+
+    key = _bonus_logical_key_for_revision(rule, revision)
+
+    assert f"round:{revision.round_id}" in key
+    assert f"player:{revision.player_id}" in key
+    assert key.endswith(":cycle:3")
+
+
+def test_bottom_x_winner_selection_expands_ties_at_cutoff() -> None:
+    player_ids = [uuid.uuid4() for _ in range(4)]
+    entries = [
+        LeaderboardEntry(
+            player_id=player_ids[0],
+            player_name="Leader",
+            avatar_url=None,
+            feature_photo_url=None,
+            holes_played=18,
+            gross_strokes=70,
+            net_strokes=68,
+            official_stableford=40,
+            bonus_points=0,
+            bonus_adjusted_stableford=40,
+            official_position=0,
+            bonus_position=0,
+        ),
+        LeaderboardEntry(
+            player_id=player_ids[1],
+            player_name="Tie A",
+            avatar_url=None,
+            feature_photo_url=None,
+            holes_played=18,
+            gross_strokes=80,
+            net_strokes=78,
+            official_stableford=30,
+            bonus_points=0,
+            bonus_adjusted_stableford=30,
+            official_position=0,
+            bonus_position=0,
+        ),
+        LeaderboardEntry(
+            player_id=player_ids[2],
+            player_name="Tie B",
+            avatar_url=None,
+            feature_photo_url=None,
+            holes_played=18,
+            gross_strokes=80,
+            net_strokes=78,
+            official_stableford=30,
+            bonus_points=0,
+            bonus_adjusted_stableford=30,
+            official_position=0,
+            bonus_position=0,
+        ),
+        LeaderboardEntry(
+            player_id=player_ids[3],
+            player_name="Bottom",
+            avatar_url=None,
+            feature_photo_url=None,
+            holes_played=18,
+            gross_strokes=90,
+            net_strokes=88,
+            official_stableford=20,
+            bonus_points=0,
+            bonus_adjusted_stableford=20,
+            official_position=0,
+            bonus_position=0,
+        ),
+    ]
+    ranked = apply_positions(entries, mode="bonus")
+    rule = BonusRule(
+        id=uuid.uuid4(),
+        name="Bottom two positions",
+        scope_type=ScopeType.ROUND,
+        round_id=uuid.uuid4(),
+        points=1,
+        winner_message="Bottom",
+        definition_jsonb={"field": "round_holes_played", "operator": "gte", "value": 1},
+        animation_preset=BonusAnimationPreset.CONFETTI,
+        winner_selection=BonusWinnerSelection.BOTTOM_X,
+        winner_selection_count=2,
+        created_by_user_id=uuid.uuid4(),
+        updated_by_user_id=uuid.uuid4(),
+    )
+
+    selected = _select_ranked_round_close_winners(rule, ranked)
+
+    assert selected == {player_ids[1], player_ids[2], player_ids[3]}

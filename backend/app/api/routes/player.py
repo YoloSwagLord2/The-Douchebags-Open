@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.entities import BonusRule, AchievementEvent, BonusAward, NotificationRecipient, Round, Score, ScoreRevision, User
-from app.models.enums import RoundStatus, ScopeType, ScoreChangeSource
+from app.models.enums import BonusAwardTiming, RoundStatus, ScopeType, ScoreChangeSource
 from app.schemas.api import PlayerDetailResponse, ScorecardResponse, ScorecardUpdateRequest
 from app.services.scoring import (
     build_round_meta,
@@ -49,6 +49,10 @@ def _load_active_bonus_awards_for_round(db: Session, player_id: uuid.UUID, round
         .where(
             BonusAward.player_id == player_id,
             BonusAward.revoked_at.is_(None),
+            (
+                (BonusAward.award_timing_snapshot != BonusAwardTiming.ROUND_CLOSE)
+                | (BonusAward.round_id == round_obj.id)
+            ),
             (
                 ((BonusRule.scope_type == ScopeType.ROUND) & (BonusRule.round_id == round_obj.id))
                 | ((BonusRule.scope_type == ScopeType.TOURNAMENT) & (BonusRule.tournament_id == round_obj.tournament_id))
