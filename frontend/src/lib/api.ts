@@ -32,6 +32,27 @@ export class APIError extends Error {
   }
 }
 
+function formatApiDetail(detail: unknown, fallback: string): string {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object" && "msg" in item) {
+          const path = "loc" in item && Array.isArray(item.loc) ? item.loc.filter((part: unknown) => part !== "body").join(".") : "";
+          return `${path ? `${path}: ` : ""}${String(item.msg)}`;
+        }
+        return "";
+      })
+      .filter(Boolean);
+    return messages.join("; ") || fallback;
+  }
+  if (detail && typeof detail === "object" && "msg" in detail) {
+    return String(detail.msg);
+  }
+  return fallback;
+}
+
 async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   const headers = new Headers(options.headers ?? {});
   if (!headers.has("Content-Type")) {
@@ -46,7 +67,7 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
     let message = response.statusText;
     try {
       const data = await response.json();
-      message = data.detail ?? message;
+      message = formatApiDetail(data.detail, message);
     } catch {
       // Keep default message.
     }

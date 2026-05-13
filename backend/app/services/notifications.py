@@ -44,6 +44,7 @@ def user_notifications_query(user_id) -> Select[tuple[NotificationRecipient]]:
     return (
         select(NotificationRecipient)
         .options(joinedload(NotificationRecipient.notification))
+        .join(NotificationRecipient.notification)
         .where(NotificationRecipient.user_id == user_id)
-        .order_by(NotificationRecipient.id.desc())
+        .order_by(NotificationRecipient.read_at.is_(None).desc(), Notification.created_at.desc(), NotificationRecipient.id.desc())
     )
