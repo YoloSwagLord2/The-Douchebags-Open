@@ -51,6 +51,7 @@ from app.schemas.api import (
     CourseResponse,
     CourseUpdate,
     HoleInput,
+    InboxClearRequest,
     ManualBonusAwardCreate,
     NotificationCreate,
     NotificationResponse,
@@ -1028,6 +1029,24 @@ def create_admin_notification(
     )
     db.commit()
     return {"status": "ok", "notification_id": str(notification.id)}
+
+
+@router.post("/notifications/clear-inbox")
+def clear_notification_inbox(
+    payload: InboxClearRequest,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    if payload.target_type == "individual":
+        user = db.scalar(select(User).where(User.id == payload.user_id))
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Player not found")
+        statement = delete(NotificationRecipient).where(NotificationRecipient.user_id == payload.user_id)
+    else:
+        statement = delete(NotificationRecipient)
+    result = db.execute(statement)
+    db.commit()
+    return {"status": "ok", "cleared_messages": result.rowcount or 0}
 
 
 @router.delete("/notifications/{notification_id}")

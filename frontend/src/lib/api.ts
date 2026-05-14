@@ -281,6 +281,12 @@ export const api = {
       { method: "POST", body: JSON.stringify(payload) },
       token,
     ),
+  clearNotificationInbox: (payload: Record<string, unknown>, token: string) =>
+    request<{ status: string; cleared_messages: number }>(
+      "/admin/notifications/clear-inbox",
+      { method: "POST", body: JSON.stringify(payload) },
+      token,
+    ),
   deleteAdminNotification: (id: string, token: string) =>
     request<{ status: string }>(`/admin/notifications/${id}`, { method: "DELETE" }, token),
 };

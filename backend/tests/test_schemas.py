@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.models.enums import BonusAwardTiming, BonusWinnerSelection, ScopeType
-from app.schemas.api import BonusRuleCreate, BonusRuleUpdate, HoleInput
+from app.schemas.api import BonusRuleCreate, BonusRuleUpdate, HoleInput, InboxClearRequest
 
 
 def test_hole_input_allows_stroke_index_one_to_eighteen() -> None:
@@ -54,3 +54,11 @@ def test_bonus_rule_create_rejects_count_for_half_selection() -> None:
             winner_selection=BonusWinnerSelection.BOTTOM_HALF,
             winner_selection_count=2,
         )
+
+
+def test_inbox_clear_requires_player_for_individual_target() -> None:
+    with pytest.raises(ValidationError):
+        InboxClearRequest(target_type="individual")
+
+    payload = InboxClearRequest(target_type="all_users")
+    assert payload.target_type == "all_users"

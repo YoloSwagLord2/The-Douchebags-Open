@@ -22,6 +22,9 @@ export function AdminNotificationsPage() {
     round_id: "",
     tournament_id: "",
   });
+  const [clearTargetType, setClearTargetType] = useState<"all_users" | "individual">("individual");
+  const [clearUserId, setClearUserId] = useState("");
+  const [clearStatus, setClearStatus] = useState<string | null>(null);
 
   const load = async () => {
     if (!token) return;
@@ -60,6 +63,26 @@ export function AdminNotificationsPage() {
     if (!token) return;
     await api.deleteAdminNotification(id, token);
     setItems((current) => current.filter((item) => item.id !== id));
+  };
+
+  const clearInbox = async () => {
+    if (!token) return;
+    if (clearTargetType === "individual" && !clearUserId) return;
+    const targetName =
+      clearTargetType === "all_users"
+        ? "all players"
+        : players.find((player) => player.id === clearUserId)?.name ?? "this player";
+    const confirmed = window.confirm(`Clear inbox messages for ${targetName}?`);
+    if (!confirmed) return;
+    const result = await api.clearNotificationInbox(
+      {
+        target_type: clearTargetType,
+        user_id: clearTargetType === "individual" ? clearUserId : null,
+      },
+      token,
+    );
+    setClearStatus(`Cleared ${result.cleared_messages} inbox messages.`);
+    await load();
   };
 
   return (
@@ -107,6 +130,26 @@ export function AdminNotificationsPage() {
           ) : null}
           <button className="button-primary" type="submit">Send message</button>
         </form>
+      </section>
+      <section className="detail-panel">
+        <p className="eyebrow">Inbox cleanup</p>
+        <h2>Clear player inboxes</h2>
+        <div className="stack-form">
+          <select value={clearTargetType} onChange={(event) => setClearTargetType(event.target.value as "all_users" | "individual")}>
+            <option value="individual">One player</option>
+            <option value="all_users">All players</option>
+          </select>
+          {clearTargetType === "individual" ? (
+            <select required value={clearUserId} onChange={(event) => setClearUserId(event.target.value)}>
+              <option value="">Select player</option>
+              {players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
+            </select>
+          ) : null}
+          {clearStatus ? <p className="muted-copy">{clearStatus}</p> : null}
+          <button className="button-secondary" onClick={clearInbox} type="button">
+            Clear inbox messages
+          </button>
+        </div>
       </section>
       <section className="detail-panel">
         <p className="eyebrow">Sent items</p>

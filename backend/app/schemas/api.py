@@ -490,6 +490,17 @@ class NotificationCreate(BaseModel):
     tournament_id: uuid.UUID | None = None
 
 
+class InboxClearRequest(BaseModel):
+    target_type: Literal["individual", "all_users"]
+    user_id: uuid.UUID | None = None
+
+    @model_validator(mode="after")
+    def validate_target(self) -> "InboxClearRequest":
+        if self.target_type == "individual" and self.user_id is None:
+            raise ValueError("user_id is required")
+        return self
+
+
 class NotificationRecipientResponse(APIModel):
     read_at: dt.datetime | None
     popup_seen_at: dt.datetime | None
