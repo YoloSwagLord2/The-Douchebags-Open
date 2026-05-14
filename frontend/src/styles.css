@@ -58,11 +58,13 @@
 }
 
 html {
+  min-height: 100%;
   width: 100%;
   overflow-x: hidden;
 }
 
 body {
+  min-height: 100%;
   width: 100%;
   margin: 0;
   overflow-x: hidden;
@@ -93,6 +95,7 @@ button {
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   overflow-x: hidden;
 }
@@ -233,7 +236,7 @@ button {
 
 .page-shell {
   flex: 1 0 auto;
-  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(6.75rem + env(safe-area-inset-bottom, 0px));
 }
 
 .stack-layout,
@@ -733,9 +736,10 @@ button {
 
 .bottom-nav {
   position: fixed;
+  top: auto;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: calc(0px - env(safe-area-inset-bottom, 0px));
   z-index: 100;
   width: 100%;
   max-width: none;
@@ -744,12 +748,11 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 0.45rem;
   padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
-  background: rgba(4, 10, 14, 0.94);
   background: var(--nav-bg);
-  backdrop-filter: blur(14px);
   border-top: 1px solid var(--border);
   border-radius: 0;
   transform: none;
+  will-change: transform;
 }
 
 .bottom-nav--admin {
@@ -2686,7 +2689,7 @@ button {
   }
 
   .page-shell {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
   }
 
   .score-entry-layout {
